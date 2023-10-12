@@ -10,26 +10,12 @@ from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistant
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent, PROMPT_DEFAULT
 
 
-def setup_configurations(config_file="OAI_CONFIG_LIST"):
-    config_list = autogen.config_list_from_json(
-        env_or_file=config_file,
-        file_location=".",
-        filter_dict={
-            "model": {
-                "gpt-4",
-                "gpt4",
-                "gpt-4-32k",
-                "gpt-4-32k-0314",
-                "gpt-35-turbo",
-                "gpt-3.5-turbo",
-            }
-        },
-    )
-    assert len(config_list) > 0
-    print("models to use: ", [config_list[i]["model"] for i in range(len(config_list))])
-
-    return config_list
-
+def setup_configurations():
+    config_list = autogen.config_list_from_models(model_list=["gpt-4", "gpt-3.5-turbo", "gpt-35-turbo"])
+    if len(config_list) > 0:
+        return [config_list[0]]
+    else:
+        return None
 
 def initialize_agents(config_list, docs_path=None):
     if docs_path is None:
@@ -97,25 +83,13 @@ def get_description_text():
     
     This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot.
 
-    #### [GitHub](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Docs](https://microsoft.github.io/autogen/) [Paper](https://arxiv.org/abs/2308.08155)
-
-    LLM configure file should contain OpenAI, Azure OpenAI or other openai compatible models, for example:
-    ```
-        [
-            {
-                "engine": "gpt-35-turbo", 
-                "model": "gpt-3.5-turbo",
-                "api_base": "https://xxx.openai.azure.com", 
-                "api_type": "azure", 
-                "api_version": "2023-05-15", 
-                "api_key": "xxx",
-            }
-        ]
-    ```
+    #### [GitHub](https://github.com/microsoft/autogen)    [Discord](https://discord.gg/pAbnFJrkgZ)    [Docs](https://microsoft.github.io/autogen/)    [Paper](https://arxiv.org/abs/2308.08155)
     """
 
 global config_list, assistant, ragproxyagent
-assistant = None
+config_list = setup_configurations()
+assistant, ragproxyagent = initialize_agents(config_list) if config_list else (None, None)
+
 with gr.Blocks() as demo:
     gr.Markdown(get_description_text())
     chatbot = gr.Chatbot(
@@ -135,10 +109,9 @@ with gr.Blocks() as demo:
 
         def upload_file(file):
             global config_list, assistant, ragproxyagent
-            config_list = setup_configurations(config_file=file.name)
-            assistant, ragproxyagent = initialize_agents(config_list)
+            update_context_url(file.name)
 
-        upload_button = gr.UploadButton("Click to Upload LLM Config File", file_types=["file"], file_count="single")
+        upload_button = gr.UploadButton("Click to Upload Document", file_types=[f".{i}" for i in TEXT_FORMATS], file_count="single")
         upload_button.upload(upload_file, upload_button)
 
     clear = gr.ClearButton([txt_input, chatbot])
