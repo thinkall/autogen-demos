@@ -7,15 +7,21 @@ import multiprocessing as mp
 from autogen.oai.openai_utils import config_list_from_json
 from autogen.retrieve_utils import TEXT_FORMATS
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
-from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent, PROMPT_DEFAULT
+from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
+    RetrieveUserProxyAgent,
+    PROMPT_DEFAULT,
+)
 
 
 def setup_configurations():
-    config_list = autogen.config_list_from_models(model_list=["gpt-4", "gpt-3.5-turbo", "gpt-35-turbo"])
+    config_list = autogen.config_list_from_models(
+        model_list=["gpt-4", "gpt-3.5-turbo", "gpt-35-turbo"]
+    )
     if len(config_list) > 0:
         return [config_list[0]]
     else:
         return None
+
 
 def initialize_agents(config_list, docs_path=None):
     if docs_path is None:
@@ -53,10 +59,12 @@ def initialize_agents(config_list, docs_path=None):
 def initiate_chat(problem, queue, n_results=3):
     global assistant, ragproxyagent
     if assistant is None:
-        queue.put(["Please upload the LLM config file first"])
+        queue.put(["Please set the LLM config first"])
         return
     assistant.reset()
-    ragproxyagent.initiate_chat(assistant, problem=problem, silent=False, n_results=n_results)
+    ragproxyagent.initiate_chat(
+        assistant, problem=problem, silent=False, n_results=n_results
+    )
     # queue.put(ragproxyagent.last_message()["content"])
     messages = ragproxyagent.chat_messages
     messages = [messages[k] for k in messages.keys()][0]
@@ -77,6 +85,7 @@ def chatbot_reply(input_text):
     messages = queue.get()
     return messages
 
+
 def get_description_text():
     return """
     # Microsoft AutoGen: Retrieve Chat Demo
@@ -86,9 +95,12 @@ def get_description_text():
     #### [GitHub](https://github.com/microsoft/autogen)    [Discord](https://discord.gg/pAbnFJrkgZ)    [Docs](https://microsoft.github.io/autogen/)    [Paper](https://arxiv.org/abs/2308.08155)
     """
 
+
 global config_list, assistant, ragproxyagent
 config_list = setup_configurations()
-assistant, ragproxyagent = initialize_agents(config_list) if config_list else (None, None)
+assistant, ragproxyagent = (
+    initialize_agents(config_list) if config_list else (None, None)
+)
 
 with gr.Blocks() as demo:
     gr.Markdown(get_description_text())
@@ -99,20 +111,68 @@ with gr.Blocks() as demo:
         avatar_images=(None, (os.path.join(os.path.dirname(__file__), "autogen.png"))),
         # height=600,
     )
+
+    txt_input = gr.Textbox(
+        scale=4,
+        show_label=False,
+        placeholder="Enter text and press enter",
+        container=False,
+    )
+
     with gr.Row():
-        txt_input = gr.Textbox(
-            scale=4,
-            show_label=False,
-            placeholder="Enter text and press enter",
-            container=False,
-        )
 
         def upload_file(file):
             global config_list, assistant, ragproxyagent
             update_context_url(file.name)
 
-        upload_button = gr.UploadButton("Click to Upload Document", file_types=[f".{i}" for i in TEXT_FORMATS], file_count="single")
+        upload_button = gr.UploadButton(
+            "Click to Upload Document",
+            file_types=[f".{i}" for i in TEXT_FORMATS],
+            file_count="single",
+        )
         upload_button.upload(upload_file, upload_button)
+
+        def set_oai_key(secret):
+            os.environ["OPENAI_API_KEY"] = secret
+            return secret
+
+        def set_aoai_key(secret):
+            os.environ["AZURE_OPENAI_API_KEY"] = secret
+            return secret
+
+        def set_aoai_base(secret):
+            os.environ["AZURE_OPENAI_API_BASE"] = secret
+            return secret
+
+        txt_oai_key = gr.Textbox(
+            label="OpenAI API Key",
+            max_lines=1,
+            show_label=True,
+            value=os.environ.get("OPENAI_API_KEY", ""),
+            container=True,
+            type="password",
+        )
+        txt_oai_key.submit(set_oai_key, [txt_oai_key], [txt_oai_key])
+        txt_aoai_key = gr.Textbox(
+            label="Azure OpenAI API Key",
+            max_lines=1,
+            show_label=True,
+            value=os.environ.get("AZURE_OPENAI_API_KEY", ""),
+            container=True,
+            type="password",
+        )
+        txt_aoai_key.submit(set_aoai_key, [txt_aoai_key], [txt_aoai_key])
+        txt_aoai_base_url = gr.Textbox(
+            label="Azure OpenAI API Base",
+            max_lines=1,
+            show_label=True,
+            value=os.environ.get("AZURE_OPENAI_API_BASE", ""),
+            container=True,
+            type="password",
+        )
+        txt_aoai_base_url.submit(
+            set_aoai_base, [txt_aoai_base_url], [txt_aoai_base_url]
+        )
 
     clear = gr.ClearButton([txt_input, chatbot])
 
@@ -135,16 +195,17 @@ with gr.Blocks() as demo:
         layout={"height": 20},
     )
 
-
     def respond(message, chat_history):
         messages = chatbot_reply(message)
-        chat_history.append((message, messages[-1] if messages[-1] != "TERMINATE" else messages[-2]))
+        chat_history.append(
+            (message, messages[-1] if messages[-1] != "TERMINATE" else messages[-2])
+        )
         return "", chat_history
 
     def update_prompt(prompt):
         ragproxyagent.customized_prompt = prompt
         return prompt
-    
+
     def update_context_url(context_url):
         global assistant, ragproxyagent
         try:
@@ -153,7 +214,7 @@ with gr.Blocks() as demo:
             pass
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=context_url)
         return context_url
-    
+
     txt_input.submit(respond, [txt_input, chatbot], [txt_input, chatbot])
     txt_prompt.submit(update_prompt, [txt_prompt], [txt_prompt])
     txt_context_url.submit(update_context_url, [txt_context_url], [txt_context_url])
@@ -161,4 +222,3 @@ with gr.Blocks() as demo:
 
 if __name__ == "__main__":
     demo.launch(share=True)
-
