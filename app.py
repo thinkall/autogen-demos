@@ -55,7 +55,7 @@ def initialize_agents(config_list, docs_path=None):
             "docs_path": docs_path,
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
-            "client": chromadb.PersistentClient(path="/tmp/chromadb1"),
+            "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_model": "all-mpnet-base-v2",
             "customized_prompt": PROMPT_DEFAULT,
         },
@@ -175,7 +175,7 @@ with gr.Blocks() as demo:
     def update_context_url(context_url):
         global assistant, ragproxyagent
         try:
-            shutil.rmtree("/tmp/chromadb1/")
+            shutil.rmtree("/tmp/chromadb/")
         except:
             pass
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=context_url)
