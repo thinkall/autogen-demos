@@ -132,20 +132,31 @@ with gr.Blocks() as demo:
         )
         upload_button.upload(upload_file, upload_button)
 
+        def update_config():
+            global config_list, assistant, ragproxyagent
+            config_list = setup_configurations()
+            assistant, ragproxyagent = (
+                initialize_agents(config_list) if config_list else (None, None)
+            )
+
         def set_oai_key(secret):
             os.environ["OPENAI_API_KEY"] = secret
+            update_config()
             return secret
 
         def set_aoai_key(secret):
             os.environ["AZURE_OPENAI_API_KEY"] = secret
+            update_config()
             return secret
 
         def set_aoai_base(secret):
             os.environ["AZURE_OPENAI_API_BASE"] = secret
+            update_config()
             return secret
 
         txt_oai_key = gr.Textbox(
             label="OpenAI API Key",
+            placeholder="Enter key and press enter",
             max_lines=1,
             show_label=True,
             value=os.environ.get("OPENAI_API_KEY", ""),
@@ -155,6 +166,7 @@ with gr.Blocks() as demo:
         txt_oai_key.submit(set_oai_key, [txt_oai_key], [txt_oai_key])
         txt_aoai_key = gr.Textbox(
             label="Azure OpenAI API Key",
+            placeholder="Enter key and press enter",
             max_lines=1,
             show_label=True,
             value=os.environ.get("AZURE_OPENAI_API_KEY", ""),
@@ -164,6 +176,7 @@ with gr.Blocks() as demo:
         txt_aoai_key.submit(set_aoai_key, [txt_aoai_key], [txt_aoai_key])
         txt_aoai_base_url = gr.Textbox(
             label="Azure OpenAI API Base",
+            placeholder="Enter base url and press enter",
             max_lines=1,
             show_label=True,
             value=os.environ.get("AZURE_OPENAI_API_BASE", ""),
