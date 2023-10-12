@@ -123,7 +123,7 @@ with gr.Blocks() as demo:
         elem_id="chatbot",
         bubble_full_width=False,
         avatar_images=(None, (os.path.join(os.path.dirname(__file__), "autogen.png"))),
-        height=600,
+        # height=600,
     )
     with gr.Row():
         txt_input = gr.Textbox(
@@ -148,7 +148,7 @@ with gr.Blocks() as demo:
         info=f"File must be in the format of [{', '.join(TEXT_FORMATS)}]",
         max_lines=1,
         show_label=True,
-        value="https://arxiv.org/pdf/2308.08155.pdf",
+        value="https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
         container=True,
     )
 
