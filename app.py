@@ -133,17 +133,6 @@ with gr.Blocks() as demo:
     )
 
     with gr.Row():
-
-        def upload_file(file):
-            update_context_url(file.name)
-
-        upload_button = gr.UploadButton(
-            "Upload Document",
-            file_types=[f".{i}" for i in TEXT_FORMATS],
-            file_count="single",
-        )
-        upload_button.upload(upload_file, upload_button)
-
         def update_config(config_list):
             global assistant, ragproxyagent
             config_list = autogen.config_list_from_models(
@@ -220,14 +209,25 @@ with gr.Blocks() as demo:
 
     clear = gr.ClearButton([txt_input, chatbot])
 
-    txt_context_url = gr.Textbox(
-        label="Enter the url to your context file and chat on the context",
-        info=f"File must be in the format of [{', '.join(TEXT_FORMATS)}]",
-        max_lines=1,
-        show_label=True,
-        value="https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
-        container=True,
-    )
+    with gr.Row():        
+        def upload_file(file):
+            update_context_url(file.name)
+
+        upload_button = gr.UploadButton(
+            "Click to upload a context file or enter a url in the right textbox",
+            file_types=[f".{i}" for i in TEXT_FORMATS],
+            file_count="single",
+        )
+        upload_button.upload(upload_file, upload_button)
+
+        txt_context_url = gr.Textbox(
+            label="Enter the url to your context file and chat on the context",
+            info=f"File must be in the format of [{', '.join(TEXT_FORMATS)}]",
+            max_lines=1,
+            show_label=True,
+            value="https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
+            container=True,
+        )
 
     txt_prompt = gr.Textbox(
         label="Enter your prompt for Retrieve Agent and press enter to replace the default prompt",
