@@ -31,7 +31,7 @@ def initialize_agents(config_list, docs_path=None):
         human_input_mode="NEVER",
         max_consecutive_auto_reply=5,
         retrieve_config={
-            # "task": "qa",
+            "task": "code",
             "docs_path": docs_path,
             "chunk_token_size": 2000,
             "model": _config_list[0]["model"],
@@ -51,7 +51,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
     else:
         _config_list = config_list
     if len(_config_list[0].get("api_key", "")) < 2:
-        queue.put(["Please set the LLM config first"])
+        queue.put(["Hi, nice to meet you! Please enter your API keys in below text boxs."])
         return
     else:
         llm_config = (
