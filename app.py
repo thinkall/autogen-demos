@@ -12,8 +12,7 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
 )
 
 
-def initialize_agents(docs_path=None):
-    global config_list
+def initialize_agents(config_list, docs_path=None):
     if isinstance(config_list, gr.State):
         _config_list = config_list.value
     else:
@@ -45,8 +44,8 @@ def initialize_agents(docs_path=None):
     return assistant, ragproxyagent
 
 
-def initiate_chat(problem, queue, n_results=3):
-    global assistant, ragproxyagent, config_list
+def initiate_chat(config_list, problem, queue, n_results=3):
+    global assistant, ragproxyagent
     if isinstance(config_list, gr.State):
         _config_list = config_list.value
     else:
@@ -55,13 +54,13 @@ def initiate_chat(problem, queue, n_results=3):
         queue.put(["Please set the LLM config first"])
         return
     else:
-        llm_config ={
-                "request_timeout": 600,
+        llm_config = (
+            {
+                "request_timeout": 120,
                 "seed": 42,
                 "config_list": _config_list,
             },
-        print(llm_config, type(llm_config))
-        print(assistant.llm_config, type(assistant.llm_config))
+        )
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
     ragproxyagent.initiate_chat(
@@ -79,7 +78,7 @@ def chatbot_reply(input_text):
     queue = mp.Queue()
     process = mp.Process(
         target=initiate_chat,
-        args=(input_text, queue),
+        args=(config_list, input_text, queue),
     )
     process.start()
     process.join()
@@ -97,7 +96,7 @@ def get_description_text():
     """
 
 
-global config_list, assistant, ragproxyagent
+global assistant, ragproxyagent
 
 with gr.Blocks() as demo:
     config_list, assistant, ragproxyagent = (
@@ -115,6 +114,7 @@ with gr.Blocks() as demo:
         None,
         None,
     )
+    assistant, ragproxyagent = initialize_agents(config_list)
 
     gr.Markdown(get_description_text())
     chatbot = gr.Chatbot(
@@ -135,7 +135,6 @@ with gr.Blocks() as demo:
     with gr.Row():
 
         def upload_file(file):
-            global config_list, assistant, ragproxyagent
             update_context_url(file.name)
 
         upload_button = gr.UploadButton(
@@ -148,21 +147,36 @@ with gr.Blocks() as demo:
         def update_config(config_list):
             global assistant, ragproxyagent
             config_list = autogen.config_list_from_models(
-                model_list=[os.environ["MODEL"]]
+                model_list=[os.environ.get("MODEL", "gpt-35-turbo")],
             )
-            print(config_list, type(config_list))
-            assistant, ragproxyagent = (
-                initialize_agents() if config_list else (None, None)
+            if not config_list:
+                config_list = [
+                    {
+                        "api_key": "",
+                        "api_base": "",
+                        "api_type": "azure",
+                        "api_version": "2023-07-01-preview",
+                        "model": "gpt-35-turbo",
+                    }
+                ]
+            print("config_list: ", config_list)
+            llm_config = (
+                {
+                    "request_timeout": 120,
+                    "seed": 42,
+                    "config_list": config_list,
+                },
             )
+            assistant.llm_config.update(llm_config[0])
+            ragproxyagent._model = config_list[0]["model"]
             return config_list
 
         def set_params(model, oai_key, aoai_key, aoai_base):
-            global config_list, assistant, ragproxyagent
             os.environ["MODEL"] = model
             os.environ["OPENAI_API_KEY"] = oai_key
             os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
             os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
-            config_list = update_config(config_list)
+            print("model: ", model, "oai_key: ", oai_key, "aoai_key: ", aoai_key, "aoai_base: ", aoai_base)
             return model, oai_key, aoai_key, aoai_base
 
         txt_model = gr.Dropdown(
@@ -173,7 +187,7 @@ with gr.Blocks() as demo:
                 "gpt-3.5-turbo",
             ],
             allow_custom_value=True,
-            default_value="gpt-35-turbo",
+            value="gpt-35-turbo",
             container=True,
         )
         txt_oai_key = gr.Textbox(
@@ -203,12 +217,6 @@ with gr.Blocks() as demo:
             container=True,
             type="password",
         )
-        set_params_button = gr.Button(value="Set Params", type="button")
-        set_params_button.click(
-            set_params,
-            [txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
-            [txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
-        )
 
     clear = gr.ClearButton([txt_input, chatbot])
 
@@ -231,7 +239,10 @@ with gr.Blocks() as demo:
         layout={"height": 20},
     )
 
-    def respond(message, chat_history):
+    def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
+        global config_list
+        set_params(model, oai_key, aoai_key, aoai_base)
+        config_list = update_config(config_list)
         messages = chatbot_reply(message)
         chat_history.append(
             (message, messages[-1] if messages[-1] != "TERMINATE" else messages[-2])
@@ -248,10 +259,10 @@ with gr.Blocks() as demo:
             shutil.rmtree("/tmp/chromadb/")
         except:
             pass
-        assistant, ragproxyagent = initialize_agents(docs_path=context_url)
+        assistant, ragproxyagent = initialize_agents(config_list, docs_path=context_url)
         return context_url
 
-    txt_input.submit(respond, [txt_input, chatbot], [txt_input, chatbot])
+    txt_input.submit(respond, [txt_input, chatbot, txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url], [txt_input, chatbot])
     txt_prompt.submit(update_prompt, [txt_prompt], [txt_prompt])
     txt_context_url.submit(update_context_url, [txt_context_url], [txt_context_url])
 
