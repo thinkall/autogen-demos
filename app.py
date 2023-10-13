@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 import shutil
+import openai
 import autogen
 import chromadb
 import multiprocessing as mp
@@ -231,7 +232,7 @@ with gr.Blocks() as demo:
         label="Enter your prompt for Retrieve Agent and press enter to replace the default prompt",
         max_lines=40,
         show_label=True,
-        value=PROMPT_DEFAULT,
+        value=PROMPT_CODE,
         container=True,
         show_copy_button=True,
         layout={"height": 20},
