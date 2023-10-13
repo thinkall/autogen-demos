@@ -16,4 +16,4 @@ This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent
 
 #### [GitHub](https://github.com/microsoft/autogen)    [Discord](https://discord.gg/pAbnFJrkgZ)    [Docs](https://microsoft.github.io/autogen/)    [Paper](https://arxiv.org/abs/2308.08155)
 
-![](demo.png)
+![](autogen-rag.gif)
