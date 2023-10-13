@@ -148,7 +148,6 @@ with gr.Blocks() as demo:
                         "model": "gpt-35-turbo",
                     }
                 ]
-            print("config_list: ", config_list)
             llm_config = (
                 {
                     "request_timeout": 120,
@@ -165,7 +164,6 @@ with gr.Blocks() as demo:
             os.environ["OPENAI_API_KEY"] = oai_key
             os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
             os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
-            print("model: ", model, "oai_key: ", oai_key, "aoai_key: ", aoai_key, "aoai_base: ", aoai_base)
             return model, oai_key, aoai_key, aoai_base
 
         txt_model = gr.Dropdown(
