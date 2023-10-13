@@ -4,7 +4,6 @@ import shutil
 import autogen
 import chromadb
 import multiprocessing as mp
-from autogen.oai.openai_utils import config_list_from_json
 from autogen.retrieve_utils import TEXT_FORMATS
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
@@ -13,17 +12,12 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
 )
 
 
-def setup_configurations():
-    config_list = autogen.config_list_from_models(
-        model_list=["gpt-4", "gpt-3.5-turbo", "gpt-35-turbo"]
-    )
-    if len(config_list) > 0:
-        return [config_list[0]]
+def initialize_agents(docs_path=None):
+    global config_list
+    if isinstance(config_list, gr.State):
+        _config_list = config_list.value
     else:
-        return None
-
-
-def initialize_agents(config_list, docs_path=None):
+        _config_list = config_list
     if docs_path is None:
         docs_path = "https://raw.githubusercontent.com/microsoft/autogen/main/README.md"
     autogen.ChatCompletion.start_logging()
@@ -31,11 +25,6 @@ def initialize_agents(config_list, docs_path=None):
     assistant = RetrieveAssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
-        llm_config={
-            "request_timeout": 600,
-            "seed": 42,
-            "config_list": config_list,
-        },
     )
 
     ragproxyagent = RetrieveUserProxyAgent(
@@ -46,7 +35,7 @@ def initialize_agents(config_list, docs_path=None):
             # "task": "qa",
             "docs_path": docs_path,
             "chunk_token_size": 2000,
-            "model": config_list[0]["model"],
+            "model": _config_list[0]["model"],
             "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_model": "all-mpnet-base-v2",
             "customized_prompt": PROMPT_DEFAULT,
@@ -57,15 +46,27 @@ def initialize_agents(config_list, docs_path=None):
 
 
 def initiate_chat(problem, queue, n_results=3):
-    global assistant, ragproxyagent
-    if assistant is None:
+    global assistant, ragproxyagent, config_list
+    if isinstance(config_list, gr.State):
+        _config_list = config_list.value
+    else:
+        _config_list = config_list
+    if len(_config_list[0].get("api_key", "")) < 2:
         queue.put(["Please set the LLM config first"])
         return
+    else:
+        llm_config ={
+                "request_timeout": 600,
+                "seed": 42,
+                "config_list": _config_list,
+            },
+        print(llm_config, type(llm_config))
+        print(assistant.llm_config, type(assistant.llm_config))
+        assistant.llm_config.update(llm_config[0])
     assistant.reset()
     ragproxyagent.initiate_chat(
         assistant, problem=problem, silent=False, n_results=n_results
     )
-    # queue.put(ragproxyagent.last_message()["content"])
     messages = ragproxyagent.chat_messages
     messages = [messages[k] for k in messages.keys()][0]
     messages = [m["content"] for m in messages if m["role"] == "user"]
@@ -97,12 +98,24 @@ def get_description_text():
 
 
 global config_list, assistant, ragproxyagent
-config_list = setup_configurations()
-assistant, ragproxyagent = (
-    initialize_agents(config_list) if config_list else (None, None)
-)
 
 with gr.Blocks() as demo:
+    config_list, assistant, ragproxyagent = (
+        gr.State(
+            [
+                {
+                    "api_key": "",
+                    "api_base": "",
+                    "api_type": "azure",
+                    "api_version": "2023-07-01-preview",
+                    "model": "gpt-35-turbo",
+                }
+            ]
+        ),
+        None,
+        None,
+    )
+
     gr.Markdown(get_description_text())
     chatbot = gr.Chatbot(
         [],
@@ -126,34 +139,43 @@ with gr.Blocks() as demo:
             update_context_url(file.name)
 
         upload_button = gr.UploadButton(
-            "Click to Upload Document",
+            "Upload Document",
             file_types=[f".{i}" for i in TEXT_FORMATS],
             file_count="single",
         )
         upload_button.upload(upload_file, upload_button)
 
-        def update_config():
-            global config_list, assistant, ragproxyagent
-            config_list = setup_configurations()
-            assistant, ragproxyagent = (
-                initialize_agents(config_list) if config_list else (None, None)
+        def update_config(config_list):
+            global assistant, ragproxyagent
+            config_list = autogen.config_list_from_models(
+                model_list=[os.environ["MODEL"]]
             )
+            print(config_list, type(config_list))
+            assistant, ragproxyagent = (
+                initialize_agents() if config_list else (None, None)
+            )
+            return config_list
 
-        def set_oai_key(secret):
-            os.environ["OPENAI_API_KEY"] = secret
-            update_config()
-            return secret
+        def set_params(model, oai_key, aoai_key, aoai_base):
+            global config_list, assistant, ragproxyagent
+            os.environ["MODEL"] = model
+            os.environ["OPENAI_API_KEY"] = oai_key
+            os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
+            os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
+            config_list = update_config(config_list)
+            return model, oai_key, aoai_key, aoai_base
 
-        def set_aoai_key(secret):
-            os.environ["AZURE_OPENAI_API_KEY"] = secret
-            update_config()
-            return secret
-
-        def set_aoai_base(secret):
-            os.environ["AZURE_OPENAI_API_BASE"] = secret
-            update_config()
-            return secret
-
+        txt_model = gr.Dropdown(
+            label="Model",
+            choices=[
+                "gpt-4",
+                "gpt-35-turbo",
+                "gpt-3.5-turbo",
+            ],
+            allow_custom_value=True,
+            default_value="gpt-35-turbo",
+            container=True,
+        )
         txt_oai_key = gr.Textbox(
             label="OpenAI API Key",
             placeholder="Enter key and press enter",
@@ -163,7 +185,6 @@ with gr.Blocks() as demo:
             container=True,
             type="password",
         )
-        txt_oai_key.submit(set_oai_key, [txt_oai_key], [txt_oai_key])
         txt_aoai_key = gr.Textbox(
             label="Azure OpenAI API Key",
             placeholder="Enter key and press enter",
@@ -173,7 +194,6 @@ with gr.Blocks() as demo:
             container=True,
             type="password",
         )
-        txt_aoai_key.submit(set_aoai_key, [txt_aoai_key], [txt_aoai_key])
         txt_aoai_base_url = gr.Textbox(
             label="Azure OpenAI API Base",
             placeholder="Enter base url and press enter",
@@ -183,8 +203,11 @@ with gr.Blocks() as demo:
             container=True,
             type="password",
         )
-        txt_aoai_base_url.submit(
-            set_aoai_base, [txt_aoai_base_url], [txt_aoai_base_url]
+        set_params_button = gr.Button(value="Set Params", type="button")
+        set_params_button.click(
+            set_params,
+            [txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
+            [txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
         )
 
     clear = gr.ClearButton([txt_input, chatbot])
@@ -225,7 +248,7 @@ with gr.Blocks() as demo:
             shutil.rmtree("/tmp/chromadb/")
         except:
             pass
-        assistant, ragproxyagent = initialize_agents(config_list, docs_path=context_url)
+        assistant, ragproxyagent = initialize_agents(docs_path=context_url)
         return context_url
 
     txt_input.submit(respond, [txt_input, chatbot], [txt_input, chatbot])
