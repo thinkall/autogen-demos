@@ -9,7 +9,7 @@ from autogen.retrieve_utils import TEXT_FORMATS
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
     RetrieveUserProxyAgent,
-    PROMPT_DEFAULT,
+    PROMPT_CODE,
 )
 
 
@@ -38,7 +38,7 @@ def initialize_agents(config_list, docs_path=None):
             "model": _config_list[0]["model"],
             "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_model": "all-mpnet-base-v2",
-            "customized_prompt": PROMPT_DEFAULT,
+            "customized_prompt": PROMPT_CODE,
         },
     )
 
