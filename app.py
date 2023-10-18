@@ -65,7 +65,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
     try:
-        ragproxyagent.initiate_chat(
+        ragproxyagent.a_initiate_chat(
             assistant, problem=problem, silent=False, n_results=n_results
         )
         messages = ragproxyagent.chat_messages
