@@ -64,13 +64,16 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         )
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
-    ragproxyagent.initiate_chat(
-        assistant, problem=problem, silent=False, n_results=n_results
-    )
-    messages = ragproxyagent.chat_messages
-    messages = [messages[k] for k in messages.keys()][0]
-    messages = [m["content"] for m in messages if m["role"] == "user"]
-    print("messages: ", messages)
+    try:
+        ragproxyagent.initiate_chat(
+            assistant, problem=problem, silent=False, n_results=n_results
+        )
+        messages = ragproxyagent.chat_messages
+        messages = [messages[k] for k in messages.keys()][0]
+        messages = [m["content"] for m in messages if m["role"] == "user"]
+        print("messages: ", messages)
+    except Exception as e:
+        messages = [str(e)]
     queue.put(messages)
 
 
@@ -82,7 +85,7 @@ def chatbot_reply(input_text):
         args=(config_list, input_text, queue),
     )
     process.start()
-    process.join(30)
+    process.join()
     messages = queue.get()
     return messages
 
