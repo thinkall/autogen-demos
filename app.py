@@ -57,7 +57,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
     else:
         llm_config = (
             {
-                "request_timeout": 120,
+                "request_timeout": 30,
                 "seed": 42,
                 "config_list": _config_list,
             },
@@ -82,7 +82,7 @@ def chatbot_reply(input_text):
         args=(config_list, input_text, queue),
     )
     process.start()
-    process.join()
+    process.join(30)
     messages = queue.get()
     return messages
 
