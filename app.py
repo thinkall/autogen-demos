@@ -12,6 +12,7 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
     PROMPT_CODE,
 )
 
+TIMEOUT = 15
 
 def initialize_agents(config_list, docs_path=None):
     if isinstance(config_list, gr.State):
@@ -57,7 +58,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
     else:
         llm_config = (
             {
-                "request_timeout": 30,
+                "request_timeout": TIMEOUT,
                 "seed": 42,
                 "config_list": _config_list,
             },
@@ -65,7 +66,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
     try:
-        ragproxyagent.a_initiate_chat(
+        ragproxyagent.initiate_chat(
             assistant, problem=problem, silent=False, n_results=n_results
         )
         messages = ragproxyagent.chat_messages
@@ -85,8 +86,16 @@ def chatbot_reply(input_text):
         args=(config_list, input_text, queue),
     )
     process.start()
-    process.join()
-    messages = queue.get()
+    try:
+        # process.join(TIMEOUT+2)
+        messages = queue.get(timeout=TIMEOUT)
+    except Exception as e:
+        messages = [str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys."]
+    finally:
+        try:
+            process.terminate()
+        except:
+            pass
     return messages
 
 
@@ -154,7 +163,7 @@ with gr.Blocks() as demo:
                 ]
             llm_config = (
                 {
-                    "request_timeout": 120,
+                    "request_timeout": TIMEOUT,
                     "seed": 42,
                     "config_list": config_list,
                 },
