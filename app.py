@@ -1,18 +1,19 @@
 import gradio as gr
 import os
+from pathlib import Path
 import shutil
 import openai
 import autogen
 import chromadb
 import multiprocessing as mp
-from autogen.retrieve_utils import TEXT_FORMATS
+from autogen.retrieve_utils import TEXT_FORMATS, get_file_from_url, is_url
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
     RetrieveUserProxyAgent,
     PROMPT_CODE,
 )
 
-TIMEOUT = 15
+TIMEOUT = 60
 
 def initialize_agents(config_list, docs_path=None):
     if isinstance(config_list, gr.State):
@@ -61,6 +62,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
                 "request_timeout": TIMEOUT,
                 "seed": 42,
                 "config_list": _config_list,
+                "use_cache": False,
             },
         )
         assistant.llm_config.update(llm_config[0])
@@ -222,14 +224,13 @@ with gr.Blocks() as demo:
 
     with gr.Row():        
         def upload_file(file):
-            update_context_url(file.name)
+            return update_context_url(file.name)
 
         upload_button = gr.UploadButton(
             "Click to upload a context file or enter a url in the right textbox",
             file_types=[f".{i}" for i in TEXT_FORMATS],
             file_count="single",
         )
-        upload_button.upload(upload_file, upload_button)
 
         txt_context_url = gr.Textbox(
             label="Enter the url to your context file and chat on the context",
@@ -263,19 +264,35 @@ with gr.Blocks() as demo:
     def update_prompt(prompt):
         ragproxyagent.customized_prompt = prompt
         return prompt
-
+    
     def update_context_url(context_url):
         global assistant, ragproxyagent
+        
+        file_extension = Path(context_url).suffix
+        print("file_extension: ", file_extension)
+        if file_extension.lower() not in [f'.{i}' for i in TEXT_FORMATS]:
+            return f"File must be in the format of {TEXT_FORMATS}"
+        
+        if is_url(context_url):
+            try:
+                file_path = get_file_from_url(context_url, save_path=os.path.join("/tmp", os.path.basename(context_url)))
+            except Exception as e:
+                return str(e)
+        else:
+            file_path = context_url
+            context_url = os.path.basename(context_url)
+
         try:
             shutil.rmtree("/tmp/chromadb/")
         except:
             pass
-        assistant, ragproxyagent = initialize_agents(config_list, docs_path=context_url)
+        assistant, ragproxyagent = initialize_agents(config_list, docs_path=file_path)
         return context_url
 
     txt_input.submit(respond, [txt_input, chatbot, txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url], [txt_input, chatbot])
     txt_prompt.submit(update_prompt, [txt_prompt], [txt_prompt])
     txt_context_url.submit(update_context_url, [txt_context_url], [txt_context_url])
+    upload_button.upload(upload_file, upload_button, [txt_context_url])
 
 
 if __name__ == "__main__":
