@@ -60,7 +60,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         llm_config = (
             {
                 "request_timeout": TIMEOUT,
-                "seed": 42,
+                # "seed": 42,
                 "config_list": _config_list,
                 "use_cache": False,
             },
@@ -166,7 +166,7 @@ with gr.Blocks() as demo:
             llm_config = (
                 {
                     "request_timeout": TIMEOUT,
-                    "seed": 42,
+                    # "seed": 42,
                     "config_list": config_list,
                 },
             )
