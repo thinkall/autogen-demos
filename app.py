@@ -105,7 +105,7 @@ def get_description_text():
     
     This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot.
 
-    #### [GitHub](https://github.com/microsoft/autogen)    [Discord](https://discord.gg/pAbnFJrkgZ)    [Docs](https://microsoft.github.io/autogen/)    [Paper](https://arxiv.org/abs/2308.08155)
+    #### [GitHub](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Blog](https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat) [Paper](https://arxiv.org/abs/2308.08155)
     """
 
 
