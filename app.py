@@ -15,6 +15,7 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
 
 TIMEOUT = 60
 
+
 def initialize_agents(config_list, docs_path=None):
     if isinstance(config_list, gr.State):
         _config_list = config_list.value
@@ -54,7 +55,9 @@ def initiate_chat(config_list, problem, queue, n_results=3):
     else:
         _config_list = config_list
     if len(_config_list[0].get("api_key", "")) < 2:
-        queue.put(["Hi, nice to meet you! Please enter your API keys in below text boxs."])
+        queue.put(
+            ["Hi, nice to meet you! Please enter your API keys in below text boxs."]
+        )
         return
     else:
         llm_config = (
@@ -92,7 +95,11 @@ def chatbot_reply(input_text):
         # process.join(TIMEOUT+2)
         messages = queue.get(timeout=TIMEOUT)
     except Exception as e:
-        messages = [str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys."]
+        messages = [
+            str(e)
+            if len(str(e)) > 0
+            else "Invalid Request to OpenAI, please check your API keys."
+        ]
     finally:
         try:
             process.terminate()
@@ -148,6 +155,7 @@ with gr.Blocks() as demo:
     )
 
     with gr.Row():
+
         def update_config(config_list):
             global assistant, ragproxyagent
             config_list = autogen.config_list_from_models(
@@ -222,7 +230,8 @@ with gr.Blocks() as demo:
 
     clear = gr.ClearButton([txt_input, chatbot])
 
-    with gr.Row():        
+    with gr.Row():
+
         def upload_file(file):
             return update_context_url(file.name)
 
@@ -256,26 +265,34 @@ with gr.Blocks() as demo:
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config(config_list)
         messages = chatbot_reply(message)
-        chat_history.append(
-            (message, messages[-1] if messages[-1] != "TERMINATE" else messages[-2])
+        _msg = (
+            messages[-1]
+            if len(messages) > 0 and messages[-1] != "TERMINATE"
+            else messages[-2]
+            if len(messages) > 1
+            else "Context is not enough for answering the question. Please press `enter` in the context url textbox to make sure the context is activated for the chat."
         )
+        chat_history.append((message, _msg))
         return "", chat_history
 
     def update_prompt(prompt):
         ragproxyagent.customized_prompt = prompt
         return prompt
-    
+
     def update_context_url(context_url):
         global assistant, ragproxyagent
-        
+
         file_extension = Path(context_url).suffix
         print("file_extension: ", file_extension)
-        if file_extension.lower() not in [f'.{i}' for i in TEXT_FORMATS]:
+        if file_extension.lower() not in [f".{i}" for i in TEXT_FORMATS]:
             return f"File must be in the format of {TEXT_FORMATS}"
-        
+
         if is_url(context_url):
             try:
-                file_path = get_file_from_url(context_url, save_path=os.path.join("/tmp", os.path.basename(context_url)))
+                file_path = get_file_from_url(
+                    context_url,
+                    save_path=os.path.join("/tmp", os.path.basename(context_url)),
+                )
             except Exception as e:
                 return str(e)
         else:
@@ -289,7 +306,11 @@ with gr.Blocks() as demo:
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=file_path)
         return context_url
 
-    txt_input.submit(respond, [txt_input, chatbot, txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url], [txt_input, chatbot])
+    txt_input.submit(
+        respond,
+        [txt_input, chatbot, txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
+        [txt_input, chatbot],
+    )
     txt_prompt.submit(update_prompt, [txt_prompt], [txt_prompt])
     txt_context_url.submit(update_context_url, [txt_context_url], [txt_context_url])
     upload_button.upload(upload_file, upload_button, [txt_context_url])
