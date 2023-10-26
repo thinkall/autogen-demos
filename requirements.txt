@@ -1,2 +1,3 @@
 pyautogen[retrievechat]>=0.1.10
 ipython
+chromadb<0.4.15
