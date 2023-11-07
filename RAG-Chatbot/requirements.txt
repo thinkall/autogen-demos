@@ -1,4 +1,2 @@
-pyautogen[retrievechat]==0.1.10
-ipython
-chromadb==0.4.12
+pyautogen[retrievechat]==0.1.14
 gradio<4.0.0

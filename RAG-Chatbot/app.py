@@ -1,8 +1,6 @@
 import gradio as gr
 import os
 from pathlib import Path
-import shutil
-import openai
 import autogen
 import chromadb
 import multiprocessing as mp
@@ -23,7 +21,6 @@ def initialize_agents(config_list, docs_path=None):
         _config_list = config_list
     if docs_path is None:
         docs_path = "https://raw.githubusercontent.com/microsoft/autogen/main/README.md"
-    autogen.ChatCompletion.start_logging()
 
     assistant = RetrieveAssistantAgent(
         name="assistant",
@@ -43,6 +40,7 @@ def initialize_agents(config_list, docs_path=None):
             "embedding_model": "all-mpnet-base-v2",
             "customized_prompt": PROMPT_CODE,
             "get_or_create": True,
+            "collection_name": "autogen_rag",
         },
     )
 
@@ -71,7 +69,6 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         )
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
-    print("ragproxyagent_collection: ", ragproxyagent._collection)
     try:
         ragproxyagent.initiate_chat(
             assistant, problem=problem, silent=False, n_results=n_results
@@ -301,8 +298,9 @@ with gr.Blocks() as demo:
             context_url = os.path.basename(context_url)
 
         try:
-            shutil.rmtree("/tmp/chromadb/")
-            os.makedirs("/tmp/chromadb/", exist_ok=True)
+            chromadb.PersistentClient(path="/tmp/chromadb").delete_collection(
+                name="autogen_rag"
+            )
         except:
             pass
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=file_path)
@@ -319,4 +317,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=False, server_name="0.0.0.0")
+    demo.launch(share=True, server_name="0.0.0.0")

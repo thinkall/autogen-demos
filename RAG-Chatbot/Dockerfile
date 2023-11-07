@@ -1,8 +1,4 @@
-FROM python:3.10.13
-#-slim-bookworm
-
-# # Install system dependencies
-# RUN apt-get update && apt-get install -y git git-lfs ffmpeg libsm6 libxext6 cmake libgl1-mesa-glx && rm -rf /var/lib/apt/lists/* && git lfs install
+FROM python:3.10.13-slim-bookworm
 
 # Setup user to not run as root
 RUN adduser --disabled-password --gecos '' autogen
