@@ -42,6 +42,7 @@ def initialize_agents(config_list, docs_path=None):
             "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_model": "all-mpnet-base-v2",
             "customized_prompt": PROMPT_CODE,
+            "get_or_create": True,
         },
     )
 
@@ -70,6 +71,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         )
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
+    print("ragproxyagent_collection: ", ragproxyagent._collection)
     try:
         ragproxyagent.initiate_chat(
             assistant, problem=problem, silent=False, n_results=n_results
@@ -257,7 +259,6 @@ with gr.Blocks() as demo:
         value=PROMPT_CODE,
         container=True,
         show_copy_button=True,
-        layout={"height": 20},
     )
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
@@ -301,6 +302,7 @@ with gr.Blocks() as demo:
 
         try:
             shutil.rmtree("/tmp/chromadb/")
+            os.makedirs("/tmp/chromadb/", exist_ok=True)
         except:
             pass
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=file_path)
@@ -317,4 +319,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(share=False, server_name="0.0.0.0")
