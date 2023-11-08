@@ -7,7 +7,7 @@ from autogen.code_utils import extract_code
 from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
 
 
-TIMEOUT = 10
+TIMEOUT = 60
 
 
 class thread_with_trace(threading.Thread):
@@ -83,6 +83,7 @@ def _is_termination_msg(message):
 def initialize_agents(config_list):
     assistant = AssistantAgent(
         name="assistant",
+        max_consecutive_auto_reply=5,
         llm_config={
             "seed": 42,
             "timeout": TIMEOUT,
@@ -95,22 +96,49 @@ def initialize_agents(config_list):
         human_input_mode="NEVER",
         is_termination_msg=_is_termination_msg,
         max_consecutive_auto_reply=5,
+        # code_execution_config=False,
         code_execution_config={
             "work_dir": "coding",
             "use_docker": False,  # set to True or image name like "python:3" to use docker
         },
     )
 
-    assistant.register_reply([Agent, None], update_chat_history)
-    userproxy.register_reply([Agent, None], update_chat_history)
+    # assistant.register_reply([Agent, None], update_chat_history)
+    # userproxy.register_reply([Agent, None], update_chat_history)
 
     return assistant, userproxy
 
 
-def initiate_chat(config_list, user_message):
+def chat_to_oai_message(chat_history):
+    """Convert chat history to OpenAI message format."""
+    messages = []
+    for msg in chat_history:
+        messages.append({"content": msg[0], "role": "user"})
+        messages.append({"content": msg[1], "role": "assistant"})
+    return messages
+
+
+def oai_message_to_chat(oai_messages, sender):
+    """Convert OpenAI message format to chat history."""
+    chat_history = []
+    messages = oai_messages[sender]
+    for i in range(len(messages) // 2):
+        chat_history.append(
+            [messages[2 * i]["content"], messages[2 * i + 1]["content"]]
+        )
+    return chat_history
+
+
+def initiate_chat(config_list, user_message, chat_history):
     global assistant, userproxy
     if len(config_list[0].get("api_key", "")) < 2:
-        return ["Hi, nice to meet you! Please enter your API keys in below text boxs."]
+        chat_history.append(
+            [
+                user_message,
+                "Hi, nice to meet you! Please enter your API keys in below text boxs.",
+            ]
+        )
+        return chat_history
     else:
         llm_config = {
             "seed": 42,
@@ -121,21 +149,22 @@ def initiate_chat(config_list, user_message):
         assistant.client = OpenAIWrapper(**assistant.llm_config)
 
     assistant.reset()
-
+    oai_messages = chat_to_oai_message(chat_history)
+    assistant._oai_system_message += oai_messages
     userproxy.initiate_chat(assistant, message=user_message)
     try:
         messages = userproxy.chat_messages
-        messages = [messages[k] for k in messages.keys()][0]
-        messages = [m["content"] for m in messages if m["role"] == "user"]
+        chat_history += oai_message_to_chat(messages, assistant)
     except Exception as e:
-        messages = [str(e)]
-    print("messages: ", messages)
-    return messages
+        chat_history += [[user_message, str(e)]]
+    return chat_history
 
 
-def chatbot_reply(input_text, config_list):
+def chatbot_reply(input_text, chat_history, config_list):
     """Chat with the agent through terminal."""
-    thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text))
+    thread = thread_with_trace(
+        target=initiate_chat, args=(config_list, input_text, chat_history)
+    )
     thread.start()
     try:
         messages = thread.join(timeout=TIMEOUT)
@@ -145,19 +174,6 @@ def chatbot_reply(input_text, config_list):
             messages = [
                 "Timeout Error: Please check your API keys and try again later."
             ]
-    except Exception as e:
-        messages = [
-            str(e)
-            if len(str(e)) > 0
-            else "Invalid Request to OpenAI, please check your API keys."
-        ]
-    return messages
-
-
-def _chatbot_reply(input_text, config_list):
-    """Chat with the agent through terminal."""
-    try:
-        messages = initiate_chat(config_list, input_text)
     except Exception as e:
         messages = [
             str(e)
@@ -276,15 +292,7 @@ with gr.Blocks() as demo:
         global config_list
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config()
-        messages = chatbot_reply(message, config_list)
-        _msg = (
-            messages[-1]
-            if len(messages) > 0 and messages[-1] != "TERMINATE"
-            else messages[-2]
-            if len(messages) > 1
-            else "Context is not enough for answering the question. Please press `enter` in the context url textbox to make sure the context is activated for the chat."
-        )
-        chat_history.append((message, _msg))
+        chat_history = chatbot_reply(message, chat_history, config_list)
         return "", chat_history
 
     txt_input.submit(
@@ -294,9 +302,9 @@ with gr.Blocks() as demo:
     )
 
     def print_chat_history(chat_history):
-        print(chat_history)
+        print(f"Chat History Length: {len(chat_history)}")
 
-    demo.load(print_chat_history, chatbot, None, every=1)
+    # demo.load(print_chat_history, chatbot, None, every=1)
 
 
 if __name__ == "__main__":
