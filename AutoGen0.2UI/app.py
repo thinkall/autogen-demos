@@ -2,12 +2,19 @@ import gradio as gr
 import os
 import threading
 import sys
+from itertools import chain
 import autogen
 from autogen.code_utils import extract_code
 from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
 
+# todo: support multiple users
 
 TIMEOUT = 60
+chatbot_history = []
+
+
+def flatten_chain(matrix):
+    return list(chain.from_iterable(matrix))
 
 
 class thread_with_trace(threading.Thread):
@@ -53,13 +60,27 @@ class thread_with_trace(threading.Thread):
 
 
 def update_chat_history(recipient, messages, sender, config):
+    global chatbot_history
     if config is None:
         config = recipient
     if messages is None:
         messages = recipient._oai_messages[sender]
     message = messages[-1]
-    print(f"Messages sent to: {recipient.name} | num messages: {len(messages)}")
+    chatbot_history.append(message.get("content", ""))
     return False, None  # required to ensure the agent communication flow continues
+
+
+def update_chatbot():
+    global chatbot_history
+    chat_history = []
+    for i in range(0, len(chatbot_history), 2):
+        chat_history.append(
+            [
+                chatbot_history[i],
+                chatbot_history[i + 1] if i + 1 < len(chatbot_history) else "",
+            ]
+        )
+    return chat_history
 
 
 def _is_termination_msg(message):
@@ -103,8 +124,8 @@ def initialize_agents(config_list):
         },
     )
 
-    # assistant.register_reply([Agent, None], update_chat_history)
-    # userproxy.register_reply([Agent, None], update_chat_history)
+    assistant.register_reply([Agent, None], update_chat_history)
+    userproxy.register_reply([Agent, None], update_chat_history)
 
     return assistant, userproxy
 
@@ -112,8 +133,16 @@ def initialize_agents(config_list):
 def chat_to_oai_message(chat_history):
     """Convert chat history to OpenAI message format."""
     messages = []
+    # print(f"chat_history: {chat_history}")
     for msg in chat_history:
-        messages.append({"content": msg[0], "role": "user"})
+        messages.append(
+            {
+                "content": msg[0].split()[0]
+                if msg[0].startswith("exitcode")
+                else msg[0],
+                "role": "user",
+            }
+        )
         messages.append({"content": msg[1], "role": "assistant"})
     return messages
 
@@ -122,15 +151,19 @@ def oai_message_to_chat(oai_messages, sender):
     """Convert OpenAI message format to chat history."""
     chat_history = []
     messages = oai_messages[sender]
-    for i in range(len(messages) // 2):
+    # print(f"messages: {messages}")
+    for i in range(0, len(messages), 2):
         chat_history.append(
-            [messages[2 * i]["content"], messages[2 * i + 1]["content"]]
+            [
+                messages[i]["content"],
+                messages[i + 1]["content"] if i + 1 < len(messages) else "",
+            ]
         )
     return chat_history
 
 
 def initiate_chat(config_list, user_message, chat_history):
-    global assistant, userproxy
+    global assistant, userproxy, chatbot_history
     if len(config_list[0].get("api_key", "")) < 2:
         chat_history.append(
             [
@@ -138,6 +171,7 @@ def initiate_chat(config_list, user_message, chat_history):
                 "Hi, nice to meet you! Please enter your API keys in below text boxs.",
             ]
         )
+        chatbot_history = flatten_chain(chat_history)
         return chat_history
     else:
         llm_config = {
@@ -150,17 +184,21 @@ def initiate_chat(config_list, user_message, chat_history):
 
     assistant.reset()
     oai_messages = chat_to_oai_message(chat_history)
+    assistant._oai_system_message_origin = assistant._oai_system_message.copy()
     assistant._oai_system_message += oai_messages
     userproxy.initiate_chat(assistant, message=user_message)
+    assistant._oai_system_message = assistant._oai_system_message_origin.copy()
     try:
         messages = userproxy.chat_messages
         chat_history += oai_message_to_chat(messages, assistant)
+        chatbot_history = flatten_chain(chat_history)
     except Exception as e:
-        chat_history += [[user_message, str(e)]]
+        chatbot_history += [str(e), ""]
+    chat_history = update_chatbot()
     return chat_history
 
 
-def chatbot_reply(input_text, chat_history, config_list):
+def chatbot_reply_thread(input_text, chat_history, config_list):
     """Chat with the agent through terminal."""
     thread = thread_with_trace(
         target=initiate_chat, args=(config_list, input_text, chat_history)
@@ -172,15 +210,40 @@ def chatbot_reply(input_text, chat_history, config_list):
             thread.kill()
             thread.join()
             messages = [
-                "Timeout Error: Please check your API keys and try again later."
+                input_text,
+                "Timeout Error: Please check your API keys and try again later.",
             ]
     except Exception as e:
         messages = [
-            str(e)
-            if len(str(e)) > 0
-            else "Invalid Request to OpenAI, please check your API keys."
+            [
+                input_text,
+                str(e)
+                if len(str(e)) > 0
+                else "Invalid Request to OpenAI, please check your API keys.",
+            ]
         ]
     return messages
+
+
+def chatbot_reply_plain(input_text, chat_history, config_list):
+    """Chat with the agent through terminal."""
+    try:
+        messages = initiate_chat(config_list, input_text, chat_history)
+    except Exception as e:
+        messages = [
+            [
+                input_text,
+                str(e)
+                if len(str(e)) > 0
+                else "Invalid Request to OpenAI, please check your API keys.",
+            ]
+        ]
+    return messages
+
+
+def chatbot_reply(input_text, chat_history, config_list):
+    """Chat with the agent through terminal."""
+    return chatbot_reply_plain(input_text, chat_history, config_list)
 
 
 def get_description_text():
@@ -214,7 +277,10 @@ with gr.Blocks() as demo:
         [],
         elem_id="chatbot",
         bubble_full_width=False,
-        avatar_images=(None, (os.path.join(os.path.dirname(__file__), "autogen.png"))),
+        avatar_images=(
+            "human.png",
+            (os.path.join(os.path.dirname(__file__), "autogen.png")),
+        ),
     )
 
     txt_input = gr.Textbox(
@@ -286,7 +352,13 @@ with gr.Blocks() as demo:
             type="password",
         )
 
-    clear = gr.ClearButton([txt_input, chatbot])
+    def clear():
+        global chatbot_history
+        chatbot_history = []
+        return "", []
+
+    btn = gr.Button(value="Clear")
+    btn.click(clear, None, [txt_input, chatbot])
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
         global config_list
@@ -301,10 +373,7 @@ with gr.Blocks() as demo:
         [txt_input, chatbot],
     )
 
-    def print_chat_history(chat_history):
-        print(f"Chat History Length: {len(chat_history)}")
-
-    # demo.load(print_chat_history, chatbot, None, every=1)
+    demo.load(update_chatbot, None, chatbot, every=0.1)
 
 
 if __name__ == "__main__":
