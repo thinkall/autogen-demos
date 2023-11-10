@@ -2,6 +2,7 @@ import gradio as gr
 import os
 import threading
 import sys
+from contextlib import contextmanager
 from itertools import chain
 import autogen
 from autogen.code_utils import extract_code
@@ -9,7 +10,7 @@ from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
 
 # todo: support multiple users
 
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "INFO"
 TIMEOUT = 60
 
 with gr.Blocks() as demo:
@@ -60,18 +61,14 @@ with gr.Blocks() as demo:
             return self._return
 
     def update_agent_history(recipient, messages, sender, config):
+        global agent_history
         if config is None:
             config = recipient
         if messages is None:
             messages = recipient._oai_messages[sender]
         message = messages[-1]
-        agent_history.append(
-            {
-                "sender": sender.name,
-                "recipient": recipient.name,
-                "message": message.get("content", ""),
-            }
-        )
+        msg = message.get("content", "")
+        agent_history.append("" if msg is None else msg)
         return False, None  # required to ensure the agent communication flow continues
 
     def _is_termination_msg(message):
@@ -164,6 +161,10 @@ with gr.Blocks() as demo:
         return chat_history
 
     def initiate_chat(config_list, user_message, chat_history):
+        global agent_history
+        if LOG_LEVEL == "DEBUG":
+            print(f"chat_history_init: {chat_history}")
+        chat_history[:] = [chat for chat in chat_history if chat[1] != ""]
         if len(config_list[0].get("api_key", "")) < 2:
             chat_history.append(
                 [
@@ -186,18 +187,19 @@ with gr.Blocks() as demo:
         oai_messages = chat_to_oai_message(chat_history)
         assistant._oai_system_message_origin = assistant._oai_system_message.copy()
         assistant._oai_system_message += oai_messages
-        userproxy.initiate_chat(assistant, message=user_message)
-        assistant._oai_system_message = assistant._oai_system_message_origin.copy()
+
         try:
+            userproxy.initiate_chat(assistant, message=user_message)
             messages = userproxy.chat_messages
             chat_history += oai_message_to_chat(messages, assistant)
             agent_history = flatten_chain(chat_history)
         except Exception as e:
             agent_history += [str(e), ""]
-            chat_history = agent_history_to_chat(agent_history)
+            chat_history[:] = agent_history_to_chat(agent_history)
+
+        assistant._oai_system_message = assistant._oai_system_message_origin.copy()
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history: {chat_history}")
-            print(f"chat_messages: {messages}")
             print(f"agent_history: {agent_history}")
         return chat_history
 
@@ -281,10 +283,10 @@ with gr.Blocks() as demo:
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config()
-        chat_history = chatbot_reply(message, chat_history, config_list)
+        chat_history[:] = chatbot_reply(message, chat_history, config_list)
         if LOG_LEVEL == "DEBUG":
             print(f"return chat_history: {chat_history}")
-        return "[[FAKE-ANSWER]]"
+        return ""
 
     config_list, assistant, userproxy = (
         [
@@ -340,6 +342,10 @@ with gr.Blocks() as demo:
             type="password",
         )
 
+    def clean_chat_history(chat_history):
+        chat_histor = [chat for chat in chat_history if chat[1] != ""]
+        return chat_history
+
     chatbot = gr.Chatbot(
         [],
         elem_id="chatbot",
@@ -350,18 +356,33 @@ with gr.Blocks() as demo:
         ),
         render=False,
     )
+    txt_input = gr.Textbox(
+        scale=4,
+        show_label=False,
+        placeholder="Enter text and press enter",
+        container=False,
+        render=False,
+    )
+
     gr.ChatInterface(
         respond,
         chatbot=chatbot,
+        textbox=txt_input,
         additional_inputs=[txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
         examples=[
-            ["write a python function to count the sum of two numbers"],
-            ["what if the production of two numbers"],
+            ["write a python function to count the sum of two numbers?"],
+            ["what if the production of two numbers?"],
             [
                 "Plot a chart of their stock price change YTD and save to stock_price_ytd.png."
             ],
+            ["what's your name?"],
         ],
     )
+
+    # chatbot.change(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    txt_input.focus(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    txt_input.blur(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    # txt_input.input(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
 
 
 if __name__ == "__main__":
