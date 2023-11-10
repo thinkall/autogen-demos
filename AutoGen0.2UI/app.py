@@ -189,14 +189,16 @@ with gr.Blocks() as demo:
         userproxy.initiate_chat(assistant, message=user_message)
         assistant._oai_system_message = assistant._oai_system_message_origin.copy()
         try:
-            messages = assistant.chat_messages
-            if LOG_LEVEL == "DEBUG":
-                print(f"assistant.chat_messages: {messages}")
+            messages = userproxy.chat_messages
             chat_history += oai_message_to_chat(messages, assistant)
             agent_history = flatten_chain(chat_history)
         except Exception as e:
             agent_history += [str(e), ""]
             chat_history = agent_history_to_chat(agent_history)
+        if LOG_LEVEL == "DEBUG":
+            print(f"chat_history: {chat_history}")
+            print(f"chat_messages: {messages}")
+            print(f"agent_history: {agent_history}")
         return chat_history
 
     def chatbot_reply_thread(input_text, chat_history, config_list):
@@ -281,7 +283,7 @@ with gr.Blocks() as demo:
         config_list = update_config()
         chat_history = chatbot_reply(message, chat_history, config_list)
         if LOG_LEVEL == "DEBUG":
-            print(f"chat_history: {chat_history}")
+            print(f"return chat_history: {chat_history}")
         return "[[FAKE-ANSWER]]"
 
     config_list, assistant, userproxy = (
