@@ -343,7 +343,7 @@ with gr.Blocks() as demo:
         )
 
     def clean_chat_history(chat_history):
-        chat_histor = [chat for chat in chat_history if chat[1] != ""]
+        chat_history = [chat for chat in chat_history if chat[1] != ""]
         return chat_history
 
     chatbot = gr.Chatbot(
@@ -379,9 +379,9 @@ with gr.Blocks() as demo:
         ],
     )
 
-    # chatbot.change(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
-    txt_input.focus(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
-    txt_input.blur(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    chatbot.change(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    # txt_input.focus(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
+    # txt_input.blur(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
     # txt_input.input(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
 
 
