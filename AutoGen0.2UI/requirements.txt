@@ -1,2 +1,2 @@
-pyautogen[lmm]>=0.2.0
+pyautogen>=0.2.0
 gradio>=4.0.0
