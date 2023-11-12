@@ -284,7 +284,7 @@ with gr.Blocks() as demo:
         return """
         # Microsoft AutoGen: Multi-Round Human Interaction Chatbot Demo
         
-        This demo shows how to build a chatbot which can handle multi-round conversations with human interaction.
+        This demo shows how to build a chatbot which can handle multi-round conversations with human interactions.
 
         #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)
         """
@@ -383,6 +383,7 @@ with gr.Blocks() as demo:
             (os.path.join(os.path.dirname(__file__), "autogen.png")),
         ),
         render=False,
+        height=800,
     )
 
     txt_input = gr.Textbox(
