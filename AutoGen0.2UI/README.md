@@ -1,11 +1,11 @@
-# Microsoft AutoGen: Group Chat Demo
+# Microsoft AutoGen: Multi-Round Human Interaction Chatbot Demo
 
-This demo shows how to use the group chat to build a chatbot.
+This demo shows how to build a chatbot which can handle multi-round conversations with human interactions.
 
 ## Run app
 ```
 # Install dependencies
-pip3 install --no-cache-dir -r requirements.txt
+pip install -U -r requirements.txt
 
 # Launch app
 python app.py
@@ -18,3 +18,5 @@ docker run -it autogen/groupchat -p 7860:7860
 ```
 
 #### [GitHub](https://github.com/microsoft/autogen) [SourceCode](https://github.com/thinkall/autogen-demos)
+
+![](autogen-human-input.gif)
