@@ -204,6 +204,16 @@ with gr.Blocks() as demo:
             }
             assistant.llm_config.update(llm_config)
             assistant.client = OpenAIWrapper(**assistant.llm_config)
+
+        if user_message.strip().lower().startswith("show file:"):
+            filename = user_message.strip().lower().replace("show file:", "").strip()
+            filepath = os.path.join("coding", filename)
+            if os.path.exists(filepath):
+                chat_history.append([user_message, (filepath,)])
+            else:
+                chat_history.append([user_message, f"File {filename} not found."])
+            return chat_history
+
         assistant.reset()
         oai_messages = chat_to_oai_message(chat_history)
         assistant._oai_system_message_origin = assistant._oai_system_message.copy()
@@ -398,9 +408,9 @@ with gr.Blocks() as demo:
             ["write a python function to count the sum of two numbers?"],
             ["what if the production of two numbers?"],
             [
-                "Plot a chart of their stock price change YTD and save to stock_price_ytd.png."
+                "Plot a chart of the last year's stock prices of Microsoft, Google and Apple and save to stock_price.png."
             ],
-            ["what's your name?"],
+            ["show file: stock_price.png"],
         ],
     )
 
