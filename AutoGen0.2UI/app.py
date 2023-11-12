@@ -1,4 +1,7 @@
 import gradio as gr
+from gradio import ChatInterface
+from gradio.helpers import special_args
+import anyio
 import os
 import threading
 import sys
@@ -13,8 +16,32 @@ from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
 LOG_LEVEL = "INFO"
 TIMEOUT = 60
 
+
+class myChatInterface(ChatInterface):
+    async def _submit_fn(
+        self,
+        message: str,
+        history_with_input: list[list[str | None]],
+        request,
+        *args,
+    ) -> tuple[list[list[str | None]], list[list[str | None]]]:
+        history = history_with_input[:-1]
+        inputs, _, _ = special_args(
+            self.fn, inputs=[message, history, *args], request=request
+        )
+
+        if self.is_async:
+            response = await self.fn(*inputs)
+        else:
+            response = await anyio.to_thread.run_sync(
+                self.fn, *inputs, limiter=self.limiter
+            )
+
+        # history.append([message, response])
+        return history, history
+
+
 with gr.Blocks() as demo:
-    agent_history = []
 
     def flatten_chain(list_of_lists):
         return list(chain.from_iterable(list_of_lists))
@@ -61,14 +88,13 @@ with gr.Blocks() as demo:
             return self._return
 
     def update_agent_history(recipient, messages, sender, config):
-        global agent_history
         if config is None:
             config = recipient
         if messages is None:
             messages = recipient._oai_messages[sender]
         message = messages[-1]
         msg = message.get("content", "")
-        agent_history.append("" if msg is None else msg)
+        # config.append(msg) if msg is not None else None  # config can be agent_history
         return False, None  # required to ensure the agent communication flow continues
 
     def _is_termination_msg(message):
@@ -155,16 +181,16 @@ with gr.Blocks() as demo:
             chat_history.append(
                 [
                     agent_history[i],
-                    agent_history[i + 1] if i + 1 < len(agent_history) else "",
+                    agent_history[i + 1] if i + 1 < len(agent_history) else None,
                 ]
             )
         return chat_history
 
     def initiate_chat(config_list, user_message, chat_history):
-        global agent_history
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history_init: {chat_history}")
         chat_history[:] = [chat for chat in chat_history if chat[1] != ""]
+        agent_history = flatten_chain(chat_history)
         if len(config_list[0].get("api_key", "")) < 2:
             chat_history.append(
                 [
@@ -172,7 +198,6 @@ with gr.Blocks() as demo:
                     "Hi, nice to meet you! Please enter your API keys in below text boxs.",
                 ]
             )
-            agent_history = flatten_chain(chat_history)
             return chat_history
         else:
             llm_config = {
@@ -275,10 +300,10 @@ with gr.Blocks() as demo:
         return config_list
 
     def set_params(model, oai_key, aoai_key, aoai_base):
-        os.environ["MODEL"] = model
-        os.environ["OPENAI_API_KEY"] = oai_key
-        os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
-        os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
+        os.environ["MODEL"] = model or ""
+        os.environ["OPENAI_API_KEY"] = oai_key or ""
+        os.environ["AZURE_OPENAI_API_KEY"] = aoai_key or ""
+        os.environ["AZURE_OPENAI_API_BASE"] = aoai_base or ""
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
         set_params(model, oai_key, aoai_key, aoai_base)
@@ -342,10 +367,6 @@ with gr.Blocks() as demo:
             type="password",
         )
 
-    def clean_chat_history(chat_history):
-        chat_history = [chat for chat in chat_history if chat[1] != ""]
-        return chat_history
-
     chatbot = gr.Chatbot(
         [],
         elem_id="chatbot",
@@ -356,15 +377,17 @@ with gr.Blocks() as demo:
         ),
         render=False,
     )
+
     txt_input = gr.Textbox(
         scale=4,
         show_label=False,
         placeholder="Enter text and press enter",
         container=False,
         render=False,
+        autofocus=True,
     )
 
-    gr.ChatInterface(
+    chatiface = myChatInterface(
         respond,
         chatbot=chatbot,
         textbox=txt_input,
@@ -378,11 +401,6 @@ with gr.Blocks() as demo:
             ["what's your name?"],
         ],
     )
-
-    chatbot.change(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
-    # txt_input.focus(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
-    # txt_input.blur(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
-    # txt_input.input(clean_chat_history, inputs=[chatbot], outputs=[chatbot])
 
 
 if __name__ == "__main__":
