@@ -1,2 +1,2 @@
-pyautogen>=0.2.0
+pyautogen==0.2.0b4
 gradio>=4.0.0
