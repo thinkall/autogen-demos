@@ -1,5 +1,5 @@
 import gradio as gr
-from gradio import ChatInterface
+from gradio import ChatInterface, Request
 from gradio.helpers import special_args
 import anyio
 import os
@@ -20,7 +20,7 @@ class myChatInterface(ChatInterface):
         self,
         message: str,
         history_with_input: list[list[str | None]],
-        request,
+        request: Request,
         *args,
     ) -> tuple[list[list[str | None]], list[list[str | None]]]:
         history = history_with_input[:-1]
@@ -204,7 +204,6 @@ with gr.Blocks() as demo:
             }
             assistant.llm_config.update(llm_config)
             assistant.client = OpenAIWrapper(**assistant.llm_config)
-
         assistant.reset()
         oai_messages = chat_to_oai_message(chat_history)
         assistant._oai_system_message_origin = assistant._oai_system_message.copy()
@@ -298,10 +297,10 @@ with gr.Blocks() as demo:
         return config_list
 
     def set_params(model, oai_key, aoai_key, aoai_base):
-        os.environ["MODEL"] = model or ""
-        os.environ["OPENAI_API_KEY"] = oai_key or ""
-        os.environ["AZURE_OPENAI_API_KEY"] = aoai_key or ""
-        os.environ["AZURE_OPENAI_API_BASE"] = aoai_base or ""
+        os.environ["MODEL"] = model
+        os.environ["OPENAI_API_KEY"] = oai_key
+        os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
+        os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base):
         set_params(model, oai_key, aoai_key, aoai_base)
@@ -342,7 +341,7 @@ with gr.Blocks() as demo:
         )
         txt_oai_key = gr.Textbox(
             label="OpenAI API Key",
-            placeholder="Enter key and press enter",
+            placeholder="Enter OpenAI API Key",
             max_lines=1,
             show_label=True,
             container=True,
@@ -350,7 +349,7 @@ with gr.Blocks() as demo:
         )
         txt_aoai_key = gr.Textbox(
             label="Azure OpenAI API Key",
-            placeholder="Enter key and press enter",
+            placeholder="Enter Azure OpenAI API Key",
             max_lines=1,
             show_label=True,
             container=True,
@@ -358,7 +357,7 @@ with gr.Blocks() as demo:
         )
         txt_aoai_base_url = gr.Textbox(
             label="Azure OpenAI API Base",
-            placeholder="Enter base url and press enter",
+            placeholder="Enter Azure OpenAI Base Url",
             max_lines=1,
             show_label=True,
             container=True,
@@ -389,7 +388,12 @@ with gr.Blocks() as demo:
         respond,
         chatbot=chatbot,
         textbox=txt_input,
-        additional_inputs=[txt_model, txt_oai_key, txt_aoai_key, txt_aoai_base_url],
+        additional_inputs=[
+            txt_model,
+            txt_oai_key,
+            txt_aoai_key,
+            txt_aoai_base_url,
+        ],
         examples=[
             ["write a python function to count the sum of two numbers?"],
             ["what if the production of two numbers?"],
