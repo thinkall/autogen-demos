@@ -5,13 +5,11 @@ import anyio
 import os
 import threading
 import sys
-from contextlib import contextmanager
 from itertools import chain
 import autogen
 from autogen.code_utils import extract_code
 from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
 
-# todo: support multiple users
 
 LOG_LEVEL = "INFO"
 TIMEOUT = 60
@@ -137,8 +135,8 @@ with gr.Blocks() as demo:
             },
         )
 
-        assistant.register_reply([Agent, None], update_agent_history)
-        userproxy.register_reply([Agent, None], update_agent_history)
+        # assistant.register_reply([Agent, None], update_agent_history)
+        # userproxy.register_reply([Agent, None], update_agent_history)
 
         return assistant, userproxy
 
@@ -189,7 +187,7 @@ with gr.Blocks() as demo:
     def initiate_chat(config_list, user_message, chat_history):
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history_init: {chat_history}")
-        agent_history = flatten_chain(chat_history)
+        # agent_history = flatten_chain(chat_history)
         if len(config_list[0].get("api_key", "")) < 2:
             chat_history.append(
                 [
@@ -216,15 +214,16 @@ with gr.Blocks() as demo:
             userproxy.initiate_chat(assistant, message=user_message)
             messages = userproxy.chat_messages
             chat_history += oai_message_to_chat(messages, assistant)
-            agent_history = flatten_chain(chat_history)
+            # agent_history = flatten_chain(chat_history)
         except Exception as e:
-            agent_history += [str(e), ""]
-            chat_history[:] = agent_history_to_chat(agent_history)
+            # agent_history += [user_message, str(e)]
+            # chat_history[:] = agent_history_to_chat(agent_history)
+            chat_history.append([user_message, str(e)])
 
         assistant._oai_system_message = assistant._oai_system_message_origin.copy()
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history: {chat_history}")
-            print(f"agent_history: {agent_history}")
+            # print(f"agent_history: {agent_history}")
         return chat_history
 
     def chatbot_reply_thread(input_text, chat_history, config_list):
@@ -274,11 +273,11 @@ with gr.Blocks() as demo:
 
     def get_description_text():
         return """
-        # Microsoft AutoGen: Retrieve Chat Demo
+        # Microsoft AutoGen: Multi-Round Human Interaction Chatbot Demo
         
-        This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot.
+        This demo shows how to build a chatbot which can handle multi-round conversations with human interaction.
 
-        #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Blog](https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)
+        #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)
         """
 
     def update_config():
