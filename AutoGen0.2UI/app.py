@@ -189,7 +189,6 @@ with gr.Blocks() as demo:
     def initiate_chat(config_list, user_message, chat_history):
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history_init: {chat_history}")
-        chat_history[:] = [chat for chat in chat_history if chat[1] != ""]
         agent_history = flatten_chain(chat_history)
         if len(config_list[0].get("api_key", "")) < 2:
             chat_history.append(
@@ -271,7 +270,7 @@ with gr.Blocks() as demo:
 
     def chatbot_reply(input_text, chat_history, config_list):
         """Chat with the agent through terminal."""
-        return chatbot_reply_plain(input_text, chat_history, config_list)
+        return chatbot_reply_thread(input_text, chat_history, config_list)
 
     def get_description_text():
         return """
