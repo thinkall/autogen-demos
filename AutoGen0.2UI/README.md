@@ -17,6 +17,6 @@ docker build -t autogen/groupchat .
 docker run -it autogen/groupchat -p 7860:7860
 ```
 
-#### [GitHub](https://github.com/microsoft/autogen) [SourceCode](https://github.com/thinkall/autogen-demos)
+#### [AutoGen](https://github.com/microsoft/autogen) [SourceCode](https://github.com/thinkall/autogen-demos)
 
 ![](autogen-human-input.gif)
