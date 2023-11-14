@@ -383,7 +383,7 @@ with gr.Blocks() as demo:
             (os.path.join(os.path.dirname(__file__), "autogen.png")),
         ),
         render=False,
-        height=800,
+        height=600,
     )
 
     txt_input = gr.Textbox(
