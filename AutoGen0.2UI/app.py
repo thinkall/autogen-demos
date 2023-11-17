@@ -24,16 +24,12 @@ class myChatInterface(ChatInterface):
         *args,
     ) -> tuple[list[list[str | None]], list[list[str | None]]]:
         history = history_with_input[:-1]
-        inputs, _, _ = special_args(
-            self.fn, inputs=[message, history, *args], request=request
-        )
+        inputs, _, _ = special_args(self.fn, inputs=[message, history, *args], request=request)
 
         if self.is_async:
-            response = await self.fn(*inputs)
+            await self.fn(*inputs)
         else:
-            response = await anyio.to_thread.run_sync(
-                self.fn, *inputs, limiter=self.limiter
-            )
+            await anyio.to_thread.run_sync(self.fn, *inputs, limiter=self.limiter)
 
         # history.append([message, response])
         return history, history
@@ -91,7 +87,7 @@ with gr.Blocks() as demo:
         if messages is None:
             messages = recipient._oai_messages[sender]
         message = messages[-1]
-        msg = message.get("content", "")
+        message.get("content", "")
         # config.append(msg) if msg is not None else None  # config can be agent_history
         return False, None  # required to ensure the agent communication flow continues
 
@@ -148,9 +144,7 @@ with gr.Blocks() as demo:
         for msg in chat_history:
             messages.append(
                 {
-                    "content": msg[0].split()[0]
-                    if msg[0].startswith("exitcode")
-                    else msg[0],
+                    "content": msg[0].split()[0] if msg[0].startswith("exitcode") else msg[0],
                     "role": "user",
                 }
             )
@@ -237,9 +231,7 @@ with gr.Blocks() as demo:
 
     def chatbot_reply_thread(input_text, chat_history, config_list):
         """Chat with the agent through terminal."""
-        thread = thread_with_trace(
-            target=initiate_chat, args=(config_list, input_text, chat_history)
-        )
+        thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text, chat_history))
         thread.start()
         try:
             messages = thread.join(timeout=TIMEOUT)
@@ -254,9 +246,7 @@ with gr.Blocks() as demo:
             messages = [
                 [
                     input_text,
-                    str(e)
-                    if len(str(e)) > 0
-                    else "Invalid Request to OpenAI, please check your API keys.",
+                    str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
                 ]
             ]
         return messages
@@ -269,9 +259,7 @@ with gr.Blocks() as demo:
             messages = [
                 [
                     input_text,
-                    str(e)
-                    if len(str(e)) > 0
-                    else "Invalid Request to OpenAI, please check your API keys.",
+                    str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
                 ]
             ]
         return messages
@@ -283,7 +271,7 @@ with gr.Blocks() as demo:
     def get_description_text():
         return """
         # Microsoft AutoGen: Multi-Round Human Interaction Chatbot Demo
-        
+
         This demo shows how to build a chatbot which can handle multi-round conversations with human interactions.
 
         #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)

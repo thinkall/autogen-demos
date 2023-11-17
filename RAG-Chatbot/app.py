@@ -54,9 +54,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
     else:
         _config_list = config_list
     if len(_config_list[0].get("api_key", "")) < 2:
-        queue.put(
-            ["Hi, nice to meet you! Please enter your API keys in below text boxs."]
-        )
+        queue.put(["Hi, nice to meet you! Please enter your API keys in below text boxs."])
         return
     else:
         llm_config = (
@@ -70,9 +68,7 @@ def initiate_chat(config_list, problem, queue, n_results=3):
         assistant.llm_config.update(llm_config[0])
     assistant.reset()
     try:
-        ragproxyagent.initiate_chat(
-            assistant, problem=problem, silent=False, n_results=n_results
-        )
+        ragproxyagent.initiate_chat(assistant, problem=problem, silent=False, n_results=n_results)
         messages = ragproxyagent.chat_messages
         messages = [messages[k] for k in messages.keys()][0]
         messages = [m["content"] for m in messages if m["role"] == "user"]
@@ -94,15 +90,11 @@ def chatbot_reply(input_text):
         # process.join(TIMEOUT+2)
         messages = queue.get(timeout=TIMEOUT)
     except Exception as e:
-        messages = [
-            str(e)
-            if len(str(e)) > 0
-            else "Invalid Request to OpenAI, please check your API keys."
-        ]
+        messages = [str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys."]
     finally:
         try:
             process.terminate()
-        except:
+        except:  # noqa
             pass
     return messages
 
@@ -110,7 +102,7 @@ def chatbot_reply(input_text):
 def get_description_text():
     return """
     # Microsoft AutoGen: Retrieve Chat Demo
-    
+
     This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot.
 
     #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Blog](https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)
@@ -298,10 +290,8 @@ with gr.Blocks() as demo:
             context_url = os.path.basename(context_url)
 
         try:
-            chromadb.PersistentClient(path="/tmp/chromadb").delete_collection(
-                name="autogen_rag"
-            )
-        except:
+            chromadb.PersistentClient(path="/tmp/chromadb").delete_collection(name="autogen_rag")
+        except:  # noqa
             pass
         assistant, ragproxyagent = initialize_agents(config_list, docs_path=file_path)
         return context_url
