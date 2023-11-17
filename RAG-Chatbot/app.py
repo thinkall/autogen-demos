@@ -1,15 +1,16 @@
-import gradio as gr
+import multiprocessing as mp
 import os
 from pathlib import Path
+
 import autogen
 import chromadb
-import multiprocessing as mp
-from autogen.retrieve_utils import TEXT_FORMATS, get_file_from_url, is_url
+import gradio as gr
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
-    RetrieveUserProxyAgent,
     PROMPT_CODE,
+    RetrieveUserProxyAgent,
 )
+from autogen.retrieve_utils import TEXT_FORMATS, get_file_from_url, is_url
 
 TIMEOUT = 60
 

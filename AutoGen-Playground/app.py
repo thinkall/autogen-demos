@@ -1,15 +1,15 @@
+import os
+import sys
+import threading
+from itertools import chain
+
+import anyio
+import autogen
 import gradio as gr
+from autogen import Agent, AssistantAgent, OpenAIWrapper, UserProxyAgent
+from autogen.code_utils import extract_code
 from gradio import ChatInterface, Request
 from gradio.helpers import special_args
-import anyio
-import os
-import threading
-import sys
-from itertools import chain
-import autogen
-from autogen.code_utils import extract_code
-from autogen import UserProxyAgent, AssistantAgent, Agent, OpenAIWrapper
-
 
 LOG_LEVEL = "INFO"
 TIMEOUT = 10
