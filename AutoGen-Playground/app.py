@@ -1,18 +1,32 @@
+import atexit
 import os
 import sys
 import threading
+from functools import partial
 from itertools import chain
+from typing import Union
 
 import anyio
 import autogen
 import gradio as gr
 from autogen import Agent, AssistantAgent, OpenAIWrapper, UserProxyAgent
 from autogen.code_utils import extract_code
+from diskcache import Cache
 from gradio import ChatInterface, Request
 from gradio.helpers import special_args
+from pydantic.dataclasses import dataclass
 
 LOG_LEVEL = "INFO"
-TIMEOUT = 10
+TIMEOUT = 10  # seconds
+CACHE_EXPIRE_TIME = 7200  # 2 hours
+_cache = Cache(".cache/gradio")
+
+
+def close_cache():
+    _cache.close()
+
+
+atexit.register(close_cache)
 
 
 class myChatInterface(ChatInterface):
@@ -33,6 +47,25 @@ class myChatInterface(ChatInterface):
 
         # history.append([message, response])
         return history, history
+
+
+@dataclass
+class AgentHistory:
+    session_hash: str = None
+    sender: str = None
+    messages: list = None
+
+
+def get_history(session_hash):
+    return _cache.get(session_hash, [])
+
+
+def save_history(session_hash, history: AgentHistory):
+    _cache.set(session_hash, get_history(session_hash).append(history), expire=CACHE_EXPIRE_TIME)
+
+
+def delete_history(session_hash):
+    _cache.delete(session_hash)
 
 
 with gr.Blocks() as demo:
@@ -81,7 +114,7 @@ with gr.Blocks() as demo:
             threading.Thread.join(self, timeout)
             return self._return
 
-    def update_agent_history(recipient, messages, sender, config):
+    def update_agent_history(recipient, messages, sender, config, session_hash=None):
         if config is None:
             config = recipient
         if messages is None:
@@ -131,9 +164,6 @@ with gr.Blocks() as demo:
             },
         )
 
-        # assistant.register_reply([Agent, None], update_agent_history)
-        # userproxy.register_reply([Agent, None], update_agent_history)
-
         return assistant, userproxy
 
     def chat_to_oai_message(chat_history):
@@ -178,10 +208,7 @@ with gr.Blocks() as demo:
             )
         return chat_history
 
-    def initiate_chat(config_list, user_message, chat_history):
-        import time
-
-        time.sleep(15)
+    def initiate_chat(config_list, user_message, chat_history, session_hash):
         if LOG_LEVEL == "DEBUG":
             print(f"chat_history_init: {chat_history}")
         # agent_history = flatten_chain(chat_history)
@@ -216,6 +243,9 @@ with gr.Blocks() as demo:
         assistant._oai_system_message_origin = assistant._oai_system_message.copy()
         assistant._oai_system_message += oai_messages
 
+        assistant.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
+        userproxy.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
+
         try:
             userproxy.initiate_chat(assistant, message=user_message)
             messages = userproxy.chat_messages
@@ -232,9 +262,9 @@ with gr.Blocks() as demo:
             # print(f"agent_history: {agent_history}")
         return chat_history
 
-    def chatbot_reply_thread(input_text, chat_history, config_list):
+    def chatbot_reply_thread(input_text, chat_history, config_list, session_hash):
         """Chat with the agent through terminal."""
-        thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text, chat_history))
+        thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text, chat_history, session_hash))
         thread.start()
         try:
             messages = thread.join(timeout=TIMEOUT)
@@ -254,10 +284,10 @@ with gr.Blocks() as demo:
             ]
         return messages
 
-    def chatbot_reply_plain(input_text, chat_history, config_list):
+    def chatbot_reply_plain(input_text, chat_history, config_list, session_hash):
         """Chat with the agent through terminal."""
         try:
-            messages = initiate_chat(config_list, input_text, chat_history)
+            messages = initiate_chat(config_list, input_text, chat_history, session_hash)
         except Exception as e:
             messages = [
                 [
@@ -267,9 +297,9 @@ with gr.Blocks() as demo:
             ]
         return messages
 
-    def chatbot_reply(input_text, chat_history, config_list):
+    def chatbot_reply(input_text, chat_history, config_list, session_hash):
         """Chat with the agent through terminal."""
-        return chatbot_reply_thread(input_text, chat_history, config_list)
+        return chatbot_reply_thread(input_text, chat_history, config_list, session_hash)
 
     def get_description_text():
         return """
@@ -304,10 +334,15 @@ with gr.Blocks() as demo:
         os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base, request: Request):
-        print(dict(request.query_params))
+        if request:
+            session_hash = dict(request.query_params).get("session_hash")
+        else:
+            raise Exception("Invalid request.")
+
+        print(f"session_hash: {session_hash}")
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config()
-        chat_history[:] = chatbot_reply(message, chat_history, config_list)
+        chat_history[:] = chatbot_reply(message, chat_history, config_list, request)
         if LOG_LEVEL == "DEBUG":
             print(f"return chat_history: {chat_history}")
         return ""
@@ -409,4 +444,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.queue().launch(share=True, server_name="0.0.0.0")
+    demo.launch(share=True, server_name="0.0.0.0")

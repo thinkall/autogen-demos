@@ -1,3 +1,4 @@
-pyautogen==0.2.0b4
+pyautogen~=0.2.0b5
 gradio>=4.0.0
 yfinance
+diskcache
