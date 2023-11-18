@@ -52,6 +52,7 @@ class AgentMessage:
 
 
 def get_history(session_hash):
+    # todo: why _cache always return None?
     _cache.close()
     msg = _cache.get(session_hash, [])
     print(f"{msg=}")
