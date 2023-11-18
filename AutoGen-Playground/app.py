@@ -256,6 +256,7 @@ with gr.Blocks() as demo:
         autofocus=True,
     )
 
+    # todo: use chatbot and event to update chat history, don't use chatinterface
     chatiface = myChatInterface(
         respond,
         chatbot=chatbot,
