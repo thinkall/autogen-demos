@@ -1,7 +1,7 @@
 import os
 import time
 from functools import partial
-
+import cloudpickle
 import autogen
 import gradio as gr
 from autogen import Agent, AssistantAgent, OpenAIWrapper, UserProxyAgent
@@ -15,6 +15,8 @@ from autogen_utils import (
     oai_message_to_chat,
     thread_with_trace,
     update_agent_history,
+    delete_history,
+    agent_history_to_chat,
 )
 from gradio import Request
 
@@ -168,10 +170,9 @@ with gr.Blocks() as demo:
     def update_chatbot(session_hash, chat_history):
         print(f"{id(chat_history)=}")
         while True:
-            cache_history = get_history(session_hash)
-            cache_history = [] if not cache_history else cache_history
-            print(f"cache_history: {cache_history}")
-            chat_history[:] = [msg.message for msg in cache_history]
+            cache_history = cloudpickle.loads(get_history(session_hash))
+            print(f"cache_history: {agent_history_to_chat(cache_history)}")
+            chat_history[:] = agent_history_to_chat(cache_history)
             time.sleep(0.1)
 
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base, request: Request):
@@ -180,6 +181,8 @@ with gr.Blocks() as demo:
         else:
             return ""
         print(f"session_hash: {session_hash}, type: {type(session_hash)}")
+        print(f"get_history: {get_history(session_hash)}")
+        # delete_history(session_hash)
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config()
         print(f"{id(chat_history)=}")
@@ -275,4 +278,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.queue().launch(share=True, server_name="0.0.0.0")
+    demo.launch(share=True, server_name="0.0.0.0")

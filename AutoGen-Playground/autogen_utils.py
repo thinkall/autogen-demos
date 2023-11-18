@@ -10,12 +10,15 @@ from diskcache import Cache
 from gradio import ChatInterface, Request
 from gradio.helpers import special_args
 from pydantic.dataclasses import dataclass
-
+import cloudpickle
+import time
 LOG_LEVEL = "INFO"
 TIMEOUT = 10  # seconds
 CACHE_EXPIRE_TIME = 7200  # 2 hours
 _cache = Cache(".cache/gradio")
+import redis
 
+r = redis.Redis(host="localhost", port=6379, db=0)
 
 def close_cache():
     _cache.close()
@@ -52,20 +55,26 @@ class AgentMessage:
 
 
 def get_history(session_hash):
-    # todo: why _cache always return None?
-    _cache.close()
-    msg = _cache.get(session_hash, [])
-    print(f"{msg=}")
-    return msg if msg else []
+    # _cache.close()
+    # msg = _cache.get(session_hash, [])
+    msg = r.get(session_hash)
+    if msg is None:
+        msg = cloudpickle.dumps([])
+    return msg
 
 
 def save_history(session_hash, agent_message: AgentMessage):
-    _cache.close()
-    _cache.set(session_hash, get_history(session_hash).append(agent_message), expire=CACHE_EXPIRE_TIME)
+    # _cache.close()
+    # _cache.set(session_hash, get_history(session_hash).append(agent_message), expire=CACHE_EXPIRE_TIME)
+    hist = cloudpickle.loads(get_history(session_hash))
+    hist.append(agent_message)
+    hist = cloudpickle.dumps(hist)
+    r.set(session_hash, hist, ex=CACHE_EXPIRE_TIME)
 
 
 def delete_history(session_hash):
-    _cache.delete(session_hash)
+    # _cache.delete(session_hash)
+    r.delete(session_hash)
 
 
 def flatten_chain(list_of_lists):
@@ -125,6 +134,7 @@ def update_agent_history(recipient, messages, sender, config, session_hash=None)
     )
     print(f"update_agent_history: {current_agent_message}")
     save_history(session_hash, current_agent_message)
+    time.sleep(2)
     return False, None  # required to ensure the agent communication flow continues
 
 
@@ -210,8 +220,8 @@ def agent_history_to_chat(agent_history):
     for i in range(0, len(agent_history), 2):
         chat_history.append(
             [
-                agent_history[i].message,
-                agent_history[i + 1].message if i + 1 < len(agent_history) else None,
+                agent_history[i].messages,
+                agent_history[i + 1].messages if i + 1 < len(agent_history) else None,
             ]
         )
     return chat_history
