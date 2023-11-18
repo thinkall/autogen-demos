@@ -6,10 +6,20 @@ from itertools import chain
 
 import anyio
 import cloudpickle
-import redis
 from autogen import Agent, AssistantAgent, OpenAIWrapper, UserProxyAgent
 from autogen.code_utils import extract_code
-from diskcache import Cache
+
+try:
+    from diskcache import Cache
+
+    CACHE_DB = "diskcache"
+except ImportError:
+    try:
+        import redis
+
+        CACHE_DB = "redis"
+    except ImportError:
+        raise ImportError("Please install diskcache or redis")
 from gradio import ChatInterface, Request
 from gradio.helpers import special_args
 from pydantic.dataclasses import dataclass
@@ -17,9 +27,10 @@ from pydantic.dataclasses import dataclass
 LOG_LEVEL = "INFO"
 TIMEOUT = 10  # seconds
 CACHE_EXPIRE_TIME = 7200  # 2 hours
-_cache = Cache(".cache/gradio")
-
-# r = redis.Redis(host="localhost", port=6379, db=0)
+if CACHE_DB == "diskcache":
+    _cache = Cache(".cache/gradio")
+elif CACHE_DB == "redis":
+    _cache = redis.Redis(host="localhost", port=6379, db=0)
 
 
 def close_cache():
@@ -57,7 +68,6 @@ class AgentMessage:
 
 
 def get_history(session_hash):
-    # msg = r.get(session_hash)
     msg = _cache.get(session_hash)
     if msg is None:
         msg = cloudpickle.dumps([])
@@ -68,12 +78,13 @@ def save_history(session_hash, agent_message: AgentMessage):
     hist = cloudpickle.loads(get_history(session_hash))
     hist.append(agent_message)
     hist = cloudpickle.dumps(hist)
-    # r.set(session_hash, hist, ex=CACHE_EXPIRE_TIME)
-    _cache.set(session_hash, hist, expire=CACHE_EXPIRE_TIME)
+    if CACHE_DB == "diskcache":
+        _cache.set(session_hash, hist, expire=CACHE_EXPIRE_TIME)
+    elif CACHE_DB == "redis":
+        _cache.set(session_hash, hist, ex=CACHE_EXPIRE_TIME)
 
 
 def delete_history(session_hash):
-    # r.delete(session_hash)
     _cache.delete(session_hash)
 
 
