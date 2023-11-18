@@ -1,305 +1,131 @@
-import atexit
 import os
-import sys
-import threading
+import time
 from functools import partial
-from itertools import chain
-from typing import Union
 
-import anyio
 import autogen
 import gradio as gr
 from autogen import Agent, AssistantAgent, OpenAIWrapper, UserProxyAgent
-from autogen.code_utils import extract_code
-from diskcache import Cache
-from gradio import ChatInterface, Request
-from gradio.helpers import special_args
-from pydantic.dataclasses import dataclass
-
-LOG_LEVEL = "INFO"
-TIMEOUT = 10  # seconds
-CACHE_EXPIRE_TIME = 7200  # 2 hours
-_cache = Cache(".cache/gradio")
-
-
-def close_cache():
-    _cache.close()
+from autogen_utils import (
+    LOG_LEVEL,
+    TIMEOUT,
+    chat_to_oai_message,
+    get_history,
+    initialize_agents,
+    myChatInterface,
+    oai_message_to_chat,
+    thread_with_trace,
+    update_agent_history,
+)
+from gradio import Request
 
 
-atexit.register(close_cache)
+def initiate_chat(config_list, user_message, chat_history, session_hash):
+    if LOG_LEVEL == "DEBUG":
+        print(f"chat_history_init: {chat_history}")
+    # agent_history = flatten_chain(chat_history)
+    if len(config_list[0].get("api_key", "")) < 2:
+        chat_history.append(
+            [
+                user_message,
+                "Hi, nice to meet you! Please enter your API keys in below text boxs.",
+            ]
+        )
+        return chat_history
+    else:
+        llm_config = {
+            # "seed": 42,
+            "timeout": TIMEOUT,
+            "config_list": config_list,
+        }
+        assistant.llm_config.update(llm_config)
+        assistant.client = OpenAIWrapper(**assistant.llm_config)
 
-
-class myChatInterface(ChatInterface):
-    async def _submit_fn(
-        self,
-        message: str,
-        history_with_input: list[list[str | None]],
-        request: Request,
-        *args,
-    ) -> tuple[list[list[str | None]], list[list[str | None]]]:
-        history = history_with_input[:-1]
-        inputs, _, _ = special_args(self.fn, inputs=[message, history, *args], request=request)
-
-        if self.is_async:
-            await self.fn(*inputs)
+    if user_message.strip().lower().startswith("show file:"):
+        filename = user_message.strip().lower().replace("show file:", "").strip()
+        filepath = os.path.join("coding", filename)
+        if os.path.exists(filepath):
+            chat_history.append([user_message, (filepath,)])
         else:
-            await anyio.to_thread.run_sync(self.fn, *inputs, limiter=self.limiter)
+            chat_history.append([user_message, f"File {filename} not found."])
+        return chat_history
 
-        # history.append([message, response])
-        return history, history
+    assistant.reset()
+    oai_messages = chat_to_oai_message(chat_history)
+    assistant._oai_system_message_origin = assistant._oai_system_message.copy()
+    assistant._oai_system_message += oai_messages
+
+    assistant.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
+    userproxy.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
+
+    try:
+        userproxy.initiate_chat(assistant, message=user_message)
+        messages = userproxy.chat_messages
+        chat_history += oai_message_to_chat(messages, assistant)
+        # agent_history = flatten_chain(chat_history)
+    except Exception as e:
+        # agent_history += [user_message, str(e)]
+        # chat_history[:] = agent_history_to_chat(agent_history)
+        chat_history.append([user_message, str(e)])
+
+    assistant._oai_system_message = assistant._oai_system_message_origin.copy()
+    if LOG_LEVEL == "DEBUG":
+        print(f"chat_history: {chat_history}")
+        # print(f"agent_history: {agent_history}")
+    return chat_history
 
 
-@dataclass
-class AgentHistory:
-    session_hash: str = None
-    sender: str = None
-    messages: list = None
+def chatbot_reply_thread(input_text, chat_history, config_list, session_hash):
+    """Chat with the agent through terminal."""
+    thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text, chat_history, session_hash))
+    thread.start()
+    try:
+        messages = thread.join(timeout=TIMEOUT)
+        if thread.is_alive():
+            thread.kill()
+            thread.join()
+            messages = [
+                input_text,
+                "Timeout Error: Please check your API keys and try again later.",
+            ]
+    except Exception as e:
+        messages = [
+            [
+                input_text,
+                str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
+            ]
+        ]
+    return messages
 
 
-def get_history(session_hash):
-    return _cache.get(session_hash, [])
-
-
-def save_history(session_hash, history: AgentHistory):
-    _cache.set(session_hash, get_history(session_hash).append(history), expire=CACHE_EXPIRE_TIME)
-
-
-def delete_history(session_hash):
-    _cache.delete(session_hash)
+def chatbot_reply_plain(input_text, chat_history, config_list, session_hash):
+    """Chat with the agent through terminal."""
+    try:
+        messages = initiate_chat(config_list, input_text, chat_history, session_hash)
+    except Exception as e:
+        messages = [
+            [
+                input_text,
+                str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
+            ]
+        ]
+    return messages
 
 
 with gr.Blocks() as demo:
-
-    def flatten_chain(list_of_lists):
-        return list(chain.from_iterable(list_of_lists))
-
-    class thread_with_trace(threading.Thread):
-        # https://www.geeksforgeeks.org/python-different-ways-to-kill-a-thread/
-        # https://stackoverflow.com/questions/6893968/how-to-get-the-return-value-from-a-thread
-        def __init__(self, *args, **keywords):
-            threading.Thread.__init__(self, *args, **keywords)
-            self.killed = False
-            self._return = None
-
-        def start(self):
-            self.__run_backup = self.run
-            self.run = self.__run
-            threading.Thread.start(self)
-
-        def __run(self):
-            sys.settrace(self.globaltrace)
-            self.__run_backup()
-            self.run = self.__run_backup
-
-        def run(self):
-            if self._target is not None:
-                self._return = self._target(*self._args, **self._kwargs)
-
-        def globaltrace(self, frame, event, arg):
-            if event == "call":
-                return self.localtrace
-            else:
-                return None
-
-        def localtrace(self, frame, event, arg):
-            if self.killed:
-                if event == "line":
-                    raise SystemExit()
-            return self.localtrace
-
-        def kill(self):
-            self.killed = True
-
-        def join(self, timeout=0):
-            threading.Thread.join(self, timeout)
-            return self._return
-
-    def update_agent_history(recipient, messages, sender, config, session_hash=None):
-        if config is None:
-            config = recipient
-        if messages is None:
-            messages = recipient._oai_messages[sender]
-        message = messages[-1]
-        message.get("content", "")
-        # config.append(msg) if msg is not None else None  # config can be agent_history
-        return False, None  # required to ensure the agent communication flow continues
-
-    def _is_termination_msg(message):
-        """Check if a message is a termination message.
-        Terminate when no code block is detected. Currently only detect python code blocks.
-        """
-        if isinstance(message, dict):
-            message = message.get("content")
-            if message is None:
-                return False
-        cb = extract_code(message)
-        contain_code = False
-        for c in cb:
-            # todo: support more languages
-            if c[0] == "python":
-                contain_code = True
-                break
-        return not contain_code
-
-    def initialize_agents(config_list):
-        assistant = AssistantAgent(
-            name="assistant",
-            max_consecutive_auto_reply=5,
-            llm_config={
-                # "seed": 42,
-                "timeout": TIMEOUT,
-                "config_list": config_list,
-            },
-        )
-
-        userproxy = UserProxyAgent(
-            name="userproxy",
-            human_input_mode="NEVER",
-            is_termination_msg=_is_termination_msg,
-            max_consecutive_auto_reply=5,
-            # code_execution_config=False,
-            code_execution_config={
-                "work_dir": "coding",
-                "use_docker": False,  # set to True or image name like "python:3" to use docker
-            },
-        )
-
-        return assistant, userproxy
-
-    def chat_to_oai_message(chat_history):
-        """Convert chat history to OpenAI message format."""
-        messages = []
-        if LOG_LEVEL == "DEBUG":
-            print(f"chat_to_oai_message: {chat_history}")
-        for msg in chat_history:
-            messages.append(
-                {
-                    "content": msg[0].split()[0] if msg[0].startswith("exitcode") else msg[0],
-                    "role": "user",
-                }
-            )
-            messages.append({"content": msg[1], "role": "assistant"})
-        return messages
-
-    def oai_message_to_chat(oai_messages, sender):
-        """Convert OpenAI message format to chat history."""
-        chat_history = []
-        messages = oai_messages[sender]
-        if LOG_LEVEL == "DEBUG":
-            print(f"oai_message_to_chat: {messages}")
-        for i in range(0, len(messages), 2):
-            chat_history.append(
-                [
-                    messages[i]["content"],
-                    messages[i + 1]["content"] if i + 1 < len(messages) else "",
-                ]
-            )
-        return chat_history
-
-    def agent_history_to_chat(agent_history):
-        """Convert agent history to chat history."""
-        chat_history = []
-        for i in range(0, len(agent_history), 2):
-            chat_history.append(
-                [
-                    agent_history[i],
-                    agent_history[i + 1] if i + 1 < len(agent_history) else None,
-                ]
-            )
-        return chat_history
-
-    def initiate_chat(config_list, user_message, chat_history, session_hash):
-        if LOG_LEVEL == "DEBUG":
-            print(f"chat_history_init: {chat_history}")
-        # agent_history = flatten_chain(chat_history)
-        if len(config_list[0].get("api_key", "")) < 2:
-            chat_history.append(
-                [
-                    user_message,
-                    "Hi, nice to meet you! Please enter your API keys in below text boxs.",
-                ]
-            )
-            return chat_history
-        else:
-            llm_config = {
-                # "seed": 42,
-                "timeout": TIMEOUT,
-                "config_list": config_list,
+    config_list, assistant, userproxy = (
+        [
+            {
+                "api_key": "",
+                "base_url": "",
+                "api_type": "azure",
+                "api_version": "2023-07-01-preview",
+                "model": "gpt-35-turbo",
             }
-            assistant.llm_config.update(llm_config)
-            assistant.client = OpenAIWrapper(**assistant.llm_config)
-
-        if user_message.strip().lower().startswith("show file:"):
-            filename = user_message.strip().lower().replace("show file:", "").strip()
-            filepath = os.path.join("coding", filename)
-            if os.path.exists(filepath):
-                chat_history.append([user_message, (filepath,)])
-            else:
-                chat_history.append([user_message, f"File {filename} not found."])
-            return chat_history
-
-        assistant.reset()
-        oai_messages = chat_to_oai_message(chat_history)
-        assistant._oai_system_message_origin = assistant._oai_system_message.copy()
-        assistant._oai_system_message += oai_messages
-
-        assistant.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
-        userproxy.register_reply([Agent, None], partial(update_agent_history, session_hash=session_hash))
-
-        try:
-            userproxy.initiate_chat(assistant, message=user_message)
-            messages = userproxy.chat_messages
-            chat_history += oai_message_to_chat(messages, assistant)
-            # agent_history = flatten_chain(chat_history)
-        except Exception as e:
-            # agent_history += [user_message, str(e)]
-            # chat_history[:] = agent_history_to_chat(agent_history)
-            chat_history.append([user_message, str(e)])
-
-        assistant._oai_system_message = assistant._oai_system_message_origin.copy()
-        if LOG_LEVEL == "DEBUG":
-            print(f"chat_history: {chat_history}")
-            # print(f"agent_history: {agent_history}")
-        return chat_history
-
-    def chatbot_reply_thread(input_text, chat_history, config_list, session_hash):
-        """Chat with the agent through terminal."""
-        thread = thread_with_trace(target=initiate_chat, args=(config_list, input_text, chat_history, session_hash))
-        thread.start()
-        try:
-            messages = thread.join(timeout=TIMEOUT)
-            if thread.is_alive():
-                thread.kill()
-                thread.join()
-                messages = [
-                    input_text,
-                    "Timeout Error: Please check your API keys and try again later.",
-                ]
-        except Exception as e:
-            messages = [
-                [
-                    input_text,
-                    str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
-                ]
-            ]
-        return messages
-
-    def chatbot_reply_plain(input_text, chat_history, config_list, session_hash):
-        """Chat with the agent through terminal."""
-        try:
-            messages = initiate_chat(config_list, input_text, chat_history, session_hash)
-        except Exception as e:
-            messages = [
-                [
-                    input_text,
-                    str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.",
-                ]
-            ]
-        return messages
-
-    def chatbot_reply(input_text, chat_history, config_list, session_hash):
-        """Chat with the agent through terminal."""
-        return chatbot_reply_thread(input_text, chat_history, config_list, session_hash)
+        ],
+        None,
+        None,
+    )
+    assistant, userproxy = initialize_agents(config_list)
 
     def get_description_text():
         return """
@@ -307,8 +133,10 @@ with gr.Blocks() as demo:
 
         This demo shows how to build a chatbot which can handle multi-round conversations with human interactions.
 
-        #### [AutoGen](https://github.com/microsoft/autogen) [Discord](https://discord.gg/pAbnFJrkgZ) [Paper](https://arxiv.org/abs/2308.08155) [SourceCode](https://github.com/thinkall/autogen-demos)
+        #### [[AutoGen](https://github.com/microsoft/autogen)] [[Discord](https://discord.gg/pAbnFJrkgZ)] [[Paper](https://arxiv.org/abs/2308.08155)] [[SourceCode](https://github.com/thinkall/autogen-demos)]
         """
+
+    description = gr.Markdown(get_description_text())
 
     def update_config():
         config_list = autogen.config_list_from_models(
@@ -333,36 +161,39 @@ with gr.Blocks() as demo:
         os.environ["AZURE_OPENAI_API_KEY"] = aoai_key
         os.environ["AZURE_OPENAI_API_BASE"] = aoai_base
 
+    def chatbot_reply(input_text, chat_history, config_list, session_hash):
+        """Chat with the agent through terminal."""
+        return chatbot_reply_thread(input_text, chat_history, config_list, session_hash)
+
+    def update_chatbot(session_hash, chat_history):
+        print(f"{id(chat_history)=}")
+        while True:
+            cache_history = get_history(session_hash)
+            cache_history = [] if not cache_history else cache_history
+            print(f"cache_history: {cache_history}")
+            chat_history[:] = [msg.message for msg in cache_history]
+            time.sleep(0.1)
+
     def respond(message, chat_history, model, oai_key, aoai_key, aoai_base, request: Request):
         if request:
             session_hash = dict(request.query_params).get("session_hash")
         else:
-            raise Exception("Invalid request.")
-
-        print(f"session_hash: {session_hash}")
+            return ""
+        print(f"session_hash: {session_hash}, type: {type(session_hash)}")
         set_params(model, oai_key, aoai_key, aoai_base)
         config_list = update_config()
-        chat_history[:] = chatbot_reply(message, chat_history, config_list, request)
-        if LOG_LEVEL == "DEBUG":
-            print(f"return chat_history: {chat_history}")
+        print(f"{id(chat_history)=}")
+        thread = thread_with_trace(target=update_chatbot, args=(session_hash, chat_history))
+        thread.start()
+
+        chatbot_reply(message, chat_history, config_list, session_hash)
+
+        thread.join()
+        if thread.is_alive():
+            thread.kill()
+            thread.join()
+
         return ""
-
-    config_list, assistant, userproxy = (
-        [
-            {
-                "api_key": "",
-                "base_url": "",
-                "api_type": "azure",
-                "api_version": "2023-07-01-preview",
-                "model": "gpt-35-turbo",
-            }
-        ],
-        None,
-        None,
-    )
-    assistant, userproxy = initialize_agents(config_list)
-
-    description = gr.Markdown(get_description_text())
 
     with gr.Row() as params:
         txt_model = gr.Dropdown(
@@ -407,7 +238,7 @@ with gr.Blocks() as demo:
         bubble_full_width=False,
         avatar_images=(
             "autogen-icons/user_green.png",
-            (os.path.join(os.path.dirname(__file__), "autogen-icons", "agent_blues.png")),
+            (os.path.join(os.path.dirname(__file__), "autogen-icons", "agent_blue.png")),
         ),
         render=False,
         height=600,
@@ -444,4 +275,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=True, server_name="0.0.0.0")
+    demo.queue().launch(share=True, server_name="0.0.0.0")
