@@ -1,4 +1,4 @@
-pyautogen~=0.2.0b5
+git+https://github.com/microsoft/autogen.git#egg=pyautogen[retrievechat,mathchat,lmm]
 panel>=1.3.1
 cloudpickle
 diskcache
