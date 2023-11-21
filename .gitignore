@@ -171,3 +171,4 @@ tmp/
 .cache
 test*
 coding
+.chromadb
