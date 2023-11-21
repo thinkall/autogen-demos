@@ -1,1 +1,1 @@
-panel serve app.py --autoreload
+panel serve app.py
