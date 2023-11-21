@@ -2,13 +2,13 @@
 
 ## Retrieve Chat Demo
 
-This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot. View the [Source Code](./RAG-Chatbot/). Try it [online](https://huggingface.co/spaces/thinkall/autogen-demos).
+This demo shows how to use the RetrieveUserProxyAgent and RetrieveAssistantAgent to build a chatbot. View the [Source Code](./AutoGen-RAG-Gradio3/). Try it [online](https://huggingface.co/spaces/thinkall/autogen-demos).
 
-![](RAG-Chatbot/autogen-rag.gif)
+![](AutoGen-RAG-Gradio3/autogen-rag.gif)
 
 
 ## Multi-Round Human Interaction Chatbot Demo
 
-This demo shows how to build a chatbot which can handle multi-round conversations with human interactions. View the [Source Code](./AutoGen0.2UI/). Try it [online](https://huggingface.co/spaces/thinkall/autogen-human-input-demo).
+This demo shows how to build a chatbot which can handle multi-round conversations with human interactions. View the [Source Code](./AutoGen-HumanInput-Gradio4/). Try it [online](https://huggingface.co/spaces/thinkall/autogen-human-input-demo).
 
-![](AutoGen0.2UI/autogen-human-input.gif)
+![](AutoGen-HumanInput-Gradio4/autogen-human-input.gif)
