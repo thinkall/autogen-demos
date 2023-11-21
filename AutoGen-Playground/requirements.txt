@@ -1,7 +1,0 @@
-pyautogen~=0.2.0b5
-gradio~=4.4.1
-yfinance
-cloudpickle
-diskcache
-# redis  # redis or diskcache, one is enough
-panel>=1.3.1
