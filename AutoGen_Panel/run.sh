@@ -1,1 +1,1 @@
-panel serve app.py --reuse-sessions
+panel serve app.py --reuse-sessions --autoreload

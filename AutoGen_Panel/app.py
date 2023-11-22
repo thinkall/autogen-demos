@@ -45,12 +45,19 @@ pwd_aoai_key = PasswordInput(
 pwd_aoai_url = PasswordInput(
     name="Azure OpenAI Base Url", placeholder="Enter your Azure OpenAI Base Url here...", sizing_mode="stretch_width"
 )
-pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url).servable()
+file_cfg = pn.widgets.FileInput(filename="OAI_CONFIG_LIST", sizing_mode="stretch_width")
+pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url, file_cfg).servable()
 
-
-def get_config():
+def get_config(tmpfilename="OAI_CONFIG_LIST"):
+    if file_cfg.value:
+        if os.path.exists(f'.chromadb/{tmpfilename}'):
+            os.remove(f'.chromadb/{tmpfilename}')
+        file_cfg.save(f'.chromadb/{tmpfilename}')
+        cfg_fpath = f'.chromadb/{tmpfilename}'
+    else:
+        cfg_fpath = "OAI_CONFIG_LIST"  # for local testing
     config_list = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
+        cfg_fpath,
         file_location=".",
     )
     if not config_list:
@@ -148,7 +155,7 @@ async def send_messages(recipient, messages, sender, config):
 
 
 def init_groupchat(event, collection_name):
-    llm_config = get_config()
+    llm_config = get_config(collection_name)
     agents = []
     for row_agent in column_agents:
         agent_name = row_agent[0][0].value
