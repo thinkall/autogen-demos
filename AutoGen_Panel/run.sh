@@ -1,1 +1,1 @@
-panel serve app.py
+panel serve app.py --reuse-sessions

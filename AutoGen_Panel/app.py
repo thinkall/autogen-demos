@@ -4,13 +4,11 @@ import time
 
 import autogen
 import panel as pn
-import param
 from autogen_utils import (
     MathUserProxyAgent,
     RetrieveUserProxyAgent,
     get_retrieve_config,
     initialize_agents,
-    thread_with_trace,
 )
 from custom_widgets import RowAgentWidget
 from panel.chat import ChatInterface
@@ -144,7 +142,7 @@ btn_add.on_click(add_agent)
 btn_remove.on_click(remove_agent)
 
 
-def send_messages(recipient, messages, sender, config):
+async def send_messages(recipient, messages, sender, config):
     chatiface.send(messages[-1]["content"], user=messages[-1]["name"], respond=False)
     return False, None  # required to ensure the agent communication flow continues
 
@@ -189,29 +187,14 @@ def init_groupchat(event, collection_name):
     return agents, manager
 
 
-def agents_chat(init_sender, manager, contents):
+async def agents_chat(init_sender, manager, contents):
     if isinstance(init_sender, (RetrieveUserProxyAgent, MathUserProxyAgent)):
-        init_sender.initiate_chat(manager, problem=contents)
+        await init_sender.a_initiate_chat(manager, problem=contents)
     else:
-        init_sender.initiate_chat(manager, message=contents)
+        await init_sender.a_initiate_chat(manager, message=contents)
 
 
-def agents_chat_thread(init_sender, manager, contents):
-    """Chat with the agent through terminal."""
-    thread = thread_with_trace(target=agents_chat, args=(init_sender, manager, contents))
-    thread.start()
-    thread.join(TIMEOUT)
-    try:
-        thread.join()
-        if thread.is_alive():
-            thread.kill()
-            thread.join()
-            chatiface.send("Timeout Error: Please check your API keys and try again later.")
-    except Exception as e:
-        chatiface.send(str(e) if len(str(e)) > 0 else "Invalid Request to OpenAI, please check your API keys.")
-
-
-def reply_chat(contents, user, instance):
+async def reply_chat(contents, user, instance):
     # print([message for message in instance.objects])
     if hasattr(instance, "collection_name"):
         collection_name = instance.collection_name
@@ -236,8 +219,7 @@ def reply_chat(contents, user, instance):
             break
     if not init_sender:
         init_sender = agents[0]
-    agents_chat_thread(init_sender, manager, contents)
-    # agents_chat(init_sender, manager, contents)
+    await agents_chat(init_sender, manager, contents)
 
 
 chatiface = ChatInterface(
@@ -245,11 +227,6 @@ chatiface = ChatInterface(
     height=600,
 )
 
-chatiface.send(
-    "Enter a message in the TextInput below to start chat with AutoGen!",
-    user="System",
-    respond=False,
-)
 chatiface.servable()
 
 btn_msg1 = Button(name=Q1, sizing_mode="stretch_width")
