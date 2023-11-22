@@ -103,12 +103,11 @@ pn.Row(
     switch_code,
 ).servable()
 
-
 column_agents = pn.Column(
     RowAgentWidget(
         value=[
-            "Boss",
-            "The boss who ask questions and give tasks. Reply `TERMINATE` if everything is done.",
+            "User_Proxy",
+            "User Proxy Agent",
             "UserProxyAgent",
             "",
         ]
@@ -118,18 +117,8 @@ column_agents = pn.Column(
 column_agents.append(
     RowAgentWidget(
         value=[
-            "Senior_Python_Engineer",
-            "You are a senior python engineer. Reply `TERMINATE` if everything is done.",
-            "AssistantAgent",
-            "",
-        ]
-    ),
-)
-column_agents.append(
-    RowAgentWidget(
-        value=[
-            "Product_Manager",
-            "You are a product manager. Reply `TERMINATE` if everything is done.",
+            "Assistant_Agent",
+            "You are a helpful AI assistant. Reply `TERMINATE` if everything is done.",
             "AssistantAgent",
             "",
         ]
@@ -270,14 +259,15 @@ btn_msg3.on_click(load_message)
 
 
 btn_example1 = Button(name="General 2 agents", button_type="primary", sizing_mode="stretch_width")
-btn_example1 = Button(name="RAG 2 agents", button_type="primary", sizing_mode="stretch_width")
-btn_example2 = Button(name="Software Dev 3 agents", button_type="primary", sizing_mode="stretch_width")
-btn_example3 = Button(name="Research 6 agents", button_type="primary", sizing_mode="stretch_width")
+btn_example2 = Button(name="RAG 2 agents", button_type="primary", sizing_mode="stretch_width")
+btn_example3 = Button(name="Software Dev 3 agents", button_type="primary", sizing_mode="stretch_width")
+btn_example4 = Button(name="Research 6 agents", button_type="primary", sizing_mode="stretch_width")
 pn.Row(
     pn.pane.Markdown("## Agent Examples: ", sizing_mode="stretch_width"),
     btn_example1,
     btn_example2,
     btn_example3,
+    btn_example4,
     sizing_mode="stretch_width",
 ).servable()
 
@@ -435,3 +425,4 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
 btn_example1.on_click(load_example)
 btn_example2.on_click(load_example)
 btn_example3.on_click(load_example)
+btn_example4.on_click(load_example)
