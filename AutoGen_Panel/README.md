@@ -14,7 +14,9 @@ bash run.sh
 ## Run docker locally
 ```
 docker build -t autogen/groupchat .
-docker run -it autogen/groupchat -p 7860:7860
+docker run -it autogen/groupchat -p 5006:5006
 ```
 
 #### [AutoGen](https://github.com/microsoft/autogen) [SourceCode](https://github.com/thinkall/autogen-demos)
+
+![](AutoGenPanel.gif)
