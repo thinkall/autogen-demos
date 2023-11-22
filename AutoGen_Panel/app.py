@@ -15,15 +15,18 @@ from panel.chat import ChatInterface
 from panel.widgets import Button, PasswordInput, Switch, TextInput
 
 TIMEOUT = 60
+TITLE = "Microsoft AutoGen Playground"
 Q1 = "What's AutoGen?"
 Q2 = "Write a python function to compute the sum of numbers."
 Q3 = "find papers on LLM applications from arxiv in the last week, create a markdown table of different domains."
 pn.extension(design="material")
 
+template = pn.template.BootstrapTemplate(title=TITLE)
+
 
 def get_description_text():
-    return """
-    # Microsoft AutoGen: Playground
+    return f"""
+    # {TITLE}
 
     This is an AutoGen playground built with [Panel](https://panel.holoviz.org/). You can use it to interact with the AutoGen agents.
 
@@ -31,7 +34,7 @@ def get_description_text():
     """
 
 
-pn.pane.Markdown(get_description_text(), sizing_mode="stretch_width").servable()
+template.main.append(pn.pane.Markdown(get_description_text(), sizing_mode="stretch_width"))
 
 txt_model = TextInput(
     name="Model Name", placeholder="Enter your model name here...", value="gpt-35-turbo", sizing_mode="stretch_width"
@@ -46,7 +49,7 @@ pwd_aoai_url = PasswordInput(
     name="Azure OpenAI Base Url", placeholder="Enter your Azure OpenAI Base Url here...", sizing_mode="stretch_width"
 )
 file_cfg = pn.widgets.FileInput(filename="OAI_CONFIG_LIST", sizing_mode="stretch_width")
-pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url, file_cfg).servable()
+template.main.append(pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url, file_cfg))
 
 
 def get_config(tmpfilename="OAI_CONFIG_LIST"):
@@ -95,13 +98,15 @@ def get_config(tmpfilename="OAI_CONFIG_LIST"):
 btn_add = Button(name="+", button_type="success")
 btn_remove = Button(name="-", button_type="danger")
 switch_code = Switch(name="Run Code", sizing_mode="fixed", width=50, height=30, align="end")
-pn.Row(
-    pn.pane.Markdown("## Add or Remove Agents: "),
-    btn_add,
-    btn_remove,
-    pn.pane.Markdown("### Run Code: "),
-    switch_code,
-).servable()
+template.main.append(
+    pn.Row(
+        pn.pane.Markdown("## Add or Remove Agents: "),
+        btn_add,
+        btn_remove,
+        pn.pane.Markdown("### Run Code: "),
+        switch_code,
+    )
+)
 
 column_agents = pn.Column(
     RowAgentWidget(
@@ -125,7 +130,7 @@ column_agents.append(
     ),
 )
 
-column_agents.servable()
+template.main.append(column_agents)
 
 
 def add_agent(event):
@@ -230,18 +235,20 @@ chatiface = ChatInterface(
     height=600,
 )
 
-chatiface.servable()
+template.main.append(chatiface)
 
 btn_msg1 = Button(name=Q1, sizing_mode="stretch_width")
 btn_msg2 = Button(name=Q2, sizing_mode="stretch_width")
 btn_msg3 = Button(name=Q3, sizing_mode="stretch_width")
-pn.Column(
-    pn.pane.Markdown("## Message Examples: ", sizing_mode="stretch_width"),
-    btn_msg1,
-    btn_msg2,
-    btn_msg3,
-    sizing_mode="stretch_width",
-).servable()
+template.main.append(
+    pn.Column(
+        pn.pane.Markdown("## Message Examples: ", sizing_mode="stretch_width"),
+        btn_msg1,
+        btn_msg2,
+        btn_msg3,
+        sizing_mode="stretch_width",
+    )
+)
 
 
 def load_message(event):
@@ -262,14 +269,16 @@ btn_example1 = Button(name="General 2 agents", button_type="primary", sizing_mod
 btn_example2 = Button(name="RAG 2 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example3 = Button(name="Software Dev 3 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example4 = Button(name="Research 6 agents", button_type="primary", sizing_mode="stretch_width")
-pn.Row(
-    pn.pane.Markdown("## Agent Examples: ", sizing_mode="stretch_width"),
-    btn_example1,
-    btn_example2,
-    btn_example3,
-    btn_example4,
-    sizing_mode="stretch_width",
-).servable()
+template.main.append(
+    pn.Row(
+        pn.pane.Markdown("## Agent Examples: ", sizing_mode="stretch_width"),
+        btn_example1,
+        btn_example2,
+        btn_example3,
+        btn_example4,
+        sizing_mode="stretch_width",
+    )
+)
 
 
 def clear_agents():
@@ -426,3 +435,5 @@ btn_example1.on_click(load_example)
 btn_example2.on_click(load_example)
 btn_example3.on_click(load_example)
 btn_example4.on_click(load_example)
+
+template.servable(title=TITLE)

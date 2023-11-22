@@ -1,3 +1,2 @@
-pyautogen==0.2.0b4
-gradio>=4.0.0
-yfinance
+pyautogen[retrievechat]==0.1.14
+gradio<4.0.0

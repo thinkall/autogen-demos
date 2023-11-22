@@ -18,5 +18,6 @@ docker run -it autogen/groupchat -p 5006:5006
 ```
 
 #### [AutoGen](https://github.com/microsoft/autogen) [SourceCode](https://github.com/thinkall/autogen-demos)
+![](autogen_playground.png)
 
 ![](AutoGenPanel.gif)
