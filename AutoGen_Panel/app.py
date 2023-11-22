@@ -15,7 +15,7 @@ from panel.chat import ChatInterface
 from panel.widgets import Button, PasswordInput, Switch, TextInput
 
 TIMEOUT = 60
-Q1 = "What's autogen?"
+Q1 = "What's AutoGen?"
 Q2 = "Write a python function to compute the sum of numbers."
 Q3 = "find papers on LLM applications from arxiv in the last week, create a markdown table of different domains."
 pn.extension(design="material")
@@ -25,7 +25,7 @@ def get_description_text():
     return """
     # Microsoft AutoGen: Playground
 
-    This is an AutoGen playground.
+    This is an AutoGen playground built with [Panel](https://panel.holoviz.org/). You can use it to interact with the AutoGen agents.
 
     #### [[AutoGen](https://github.com/microsoft/autogen)] [[Discord](https://discord.gg/pAbnFJrkgZ)] [[Paper](https://arxiv.org/abs/2308.08155)] [[SourceCode](https://github.com/thinkall/autogen-demos)]
     """
@@ -48,12 +48,14 @@ pwd_aoai_url = PasswordInput(
 file_cfg = pn.widgets.FileInput(filename="OAI_CONFIG_LIST", sizing_mode="stretch_width")
 pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url, file_cfg).servable()
 
+
 def get_config(tmpfilename="OAI_CONFIG_LIST"):
+    os.makedirs(".chromadb", exist_ok=True)
     if file_cfg.value:
-        if os.path.exists(f'.chromadb/{tmpfilename}'):
-            os.remove(f'.chromadb/{tmpfilename}')
-        file_cfg.save(f'.chromadb/{tmpfilename}')
-        cfg_fpath = f'.chromadb/{tmpfilename}'
+        if os.path.exists(f".chromadb/{tmpfilename}"):
+            os.remove(f".chromadb/{tmpfilename}")
+        file_cfg.save(f".chromadb/{tmpfilename}")
+        cfg_fpath = f".chromadb/{tmpfilename}"
     else:
         cfg_fpath = "OAI_CONFIG_LIST"  # for local testing
     config_list = autogen.config_list_from_json(
@@ -149,8 +151,8 @@ btn_add.on_click(add_agent)
 btn_remove.on_click(remove_agent)
 
 
-async def send_messages(recipient, messages, sender, config):
-    chatiface.send(messages[-1]["content"], user=messages[-1]["name"], respond=False)
+def send_messages(recipient, messages, sender, config):
+    chatiface.send(messages[-1]["content"], user=sender.name, respond=False)
     return False, None  # required to ensure the agent communication flow continues
 
 
@@ -172,12 +174,10 @@ def init_groupchat(event, collection_name):
             else None
         )
         code_execution_config = (
-            (
-                {
-                    "work_dir": "coding",
-                    "use_docker": False,  # set to True or image name like "python:3" to use docker
-                },
-            )
+            {
+                "work_dir": "coding",
+                "use_docker": False,  # set to True or image name like "python:3" to use docker
+            }
             if switch_code.value
             else False
         )
@@ -186,19 +186,22 @@ def init_groupchat(event, collection_name):
         )
         agent.register_reply([autogen.Agent, None], reply_func=send_messages, config={"callback": None})
         agents.append(agent)
-
-    groupchat = autogen.GroupChat(
-        agents=agents, messages=[], max_round=12, speaker_selection_method="round_robin", allow_repeat_speaker=False
-    )  # todo: auto, sometimes message has no name
-    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+    if len(agents) >= 3:
+        groupchat = autogen.GroupChat(
+            agents=agents, messages=[], max_round=12, speaker_selection_method="round_robin", allow_repeat_speaker=False
+        )  # todo: auto, sometimes message has no name
+        manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+    else:
+        manager = None
     return agents, manager
 
 
-async def agents_chat(init_sender, manager, contents):
+async def agents_chat(init_sender, manager, contents, agents):
+    recipient = manager if len(agents) > 2 else agents[1] if agents[1] != init_sender else agents[0]
     if isinstance(init_sender, (RetrieveUserProxyAgent, MathUserProxyAgent)):
-        await init_sender.a_initiate_chat(manager, problem=contents)
+        await init_sender.a_initiate_chat(recipient, problem=contents)
     else:
-        await init_sender.a_initiate_chat(manager, message=contents)
+        await init_sender.a_initiate_chat(recipient, message=contents)
 
 
 async def reply_chat(contents, user, instance):
@@ -219,6 +222,9 @@ async def reply_chat(contents, user, instance):
         agents = instance.agents
         manager = instance.manager
 
+    if len(agents) <= 1:
+        return "Please add more agents."
+
     init_sender = None
     for agent in agents:
         if "UserProxy" in str(type(agent)):
@@ -226,7 +232,8 @@ async def reply_chat(contents, user, instance):
             break
     if not init_sender:
         init_sender = agents[0]
-    await agents_chat(init_sender, manager, contents)
+    await agents_chat(init_sender, manager, contents, agents)
+    return "The task is done. Please start a new task."
 
 
 chatiface = ChatInterface(
@@ -262,6 +269,7 @@ btn_msg2.on_click(load_message)
 btn_msg3.on_click(load_message)
 
 
+btn_example1 = Button(name="General 2 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example1 = Button(name="RAG 2 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example2 = Button(name="Software Dev 3 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example3 = Button(name="Research 6 agents", button_type="primary", sizing_mode="stretch_width")
@@ -298,6 +306,27 @@ def load_example(event):
                     "Senior_Python_Engineer",
                     "You are a senior python engineer. Reply `TERMINATE` if everything is done.",
                     "RetrieveAssistantAgent",
+                    "",
+                ]
+            ),
+        )
+    elif event.obj.name == "General 2 agents":
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "User_Proxy",
+                    "User Proxy Agent",
+                    "UserProxyAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "Assistant_Agent",
+                    "You are a helpful AI assistant. Reply `TERMINATE` if everything is done.",
+                    "AssistantAgent",
                     "",
                 ]
             ),
