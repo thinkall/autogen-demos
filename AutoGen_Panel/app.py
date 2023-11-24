@@ -9,6 +9,7 @@ import panel as pn
 from autogen_utils import (
     MathUserProxyAgent,
     RetrieveUserProxyAgent,
+    check_termination_and_human_reply,
     get_retrieve_config,
     initialize_agents,
 )
@@ -16,14 +17,6 @@ from configs import Q1, Q2, Q3, TIMEOUT, TITLE
 from custom_widgets import RowAgentWidget
 from panel.chat import ChatInterface
 from panel.widgets import Button, PasswordInput, Switch, TextAreaInput, TextInput
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
 
 pn.extension(design="material")
 
@@ -230,109 +223,11 @@ async def reply_chat(contents, user, instance):
             init_sender = agent
             break
     for agent in agents:
-
-        async def get_human_input(name, prompt: str, instance=instance) -> str:
-            """Get human input."""
-            if instance is None:
-                return input(prompt)
-            get_input_widget = TextAreaInput(placeholder=prompt, name="", sizing_mode="stretch_width")
-            get_input_checkbox = pn.widgets.Checkbox(name="Check to Submit Feedback")
-            instance.send(pn.Row(get_input_widget, get_input_checkbox), user=name, respond=False)
-            ts = time.time()
-            while True:
-                if time.time() - ts > TIMEOUT:
-                    instance.send(
-                        f"You didn't provide your feedback in {TIMEOUT} seconds, skip and use auto-reply.",
-                        user=name,
-                        respond=False,
-                    )
-                    reply = ""
-                    break
-                if get_input_widget.value != "" and get_input_checkbox.value is True:
-                    reply = get_input_widget.value
-                    break
-                await asyncio.sleep(0.5)
-            return reply
-
-        async def check_termination_and_human_reply(
-            self,
-            messages=None,
-            sender=None,
-            config=None,
-        ):
-            """Check if the conversation should be terminated, and if human reply is provided."""
-            if config is None:
-                config = self
-            if messages is None:
-                messages = self._oai_messages[sender]
-            message = messages[-1]
-            reply = ""
-            no_human_input_msg = ""
-            if self.human_input_mode == "ALWAYS":
-                reply = await get_human_input(
-                    self.name,
-                    f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: ",
-                )
-                no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
-                # if the human input is empty, and the message is a termination message, then we will terminate the conversation
-                reply = reply if reply or not self._is_termination_msg(message) else "exit"
-            else:
-                if self._consecutive_auto_reply_counter[sender] >= self._max_consecutive_auto_reply_dict[sender]:
-                    if self.human_input_mode == "NEVER":
-                        reply = "exit"
-                    else:
-                        # self.human_input_mode == "TERMINATE":
-                        terminate = self._is_termination_msg(message)
-                        reply = await get_human_input(
-                            self.name,
-                            f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
-                            if terminate
-                            else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: ",
-                        )
-                        no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
-                        # if the human input is empty, and the message is a termination message, then we will terminate the conversation
-                        reply = reply if reply or not terminate else "exit"
-                elif self._is_termination_msg(message):
-                    if self.human_input_mode == "NEVER":
-                        reply = "exit"
-                    else:
-                        # self.human_input_mode == "TERMINATE":
-                        reply = await get_human_input(
-                            self.name,
-                            f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: ",
-                        )
-                        no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
-                        # if the human input is empty, and the message is a termination message, then we will terminate the conversation
-                        reply = reply or "exit"
-
-            # print the no_human_input_msg
-            if no_human_input_msg:
-                print(colored(f"\n>>>>>>>> {no_human_input_msg}", "red"), flush=True)
-
-            # stop the conversation
-            if reply == "exit":
-                # reset the consecutive_auto_reply_counter
-                self._consecutive_auto_reply_counter[sender] = 0
-                return True, None
-
-            # send the human reply
-            if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
-                # reset the consecutive_auto_reply_counter
-                self._consecutive_auto_reply_counter[sender] = 0
-                return True, reply
-
-            # increment the consecutive_auto_reply_counter
-            self._consecutive_auto_reply_counter[sender] += 1
-            if self.human_input_mode != "NEVER":
-                print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
-
-            return False, None
-
         # Hack for get human input
         agent._reply_func_list.pop(1)
         agent.register_reply(
             [autogen.Agent, None],
-            check_termination_and_human_reply,
+            partial(check_termination_and_human_reply, instance=instance),
             1,
         )
 

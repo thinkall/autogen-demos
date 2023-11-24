@@ -6,6 +6,7 @@ from ast import literal_eval
 
 import autogen
 import chromadb
+import panel as pn
 from autogen import Agent, AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
@@ -16,6 +17,14 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProx
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 from autogen.code_utils import extract_code
 from configs import Q1, Q2, Q3, TIMEOUT, TITLE
+from panel.widgets import TextAreaInput
+
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
 
 
 def get_retrieve_config(docs_path, model_name, collection_name):
@@ -145,3 +154,107 @@ def initialize_agents(
         agent._reply_func_list.pop(-1)
         agent.register_reply([Agent, None], new_generate_oai_reply, -1)
     return agent
+
+
+async def get_human_input(name, prompt: str, instance=None) -> str:
+    """Get human input."""
+    if instance is None:
+        return input(prompt)
+    get_input_widget = TextAreaInput(placeholder=prompt, name="", sizing_mode="stretch_width")
+    get_input_checkbox = pn.widgets.Checkbox(name="Check to Submit Feedback")
+    instance.send(pn.Row(get_input_widget, get_input_checkbox), user=name, respond=False)
+    ts = time.time()
+    while True:
+        if time.time() - ts > TIMEOUT:
+            instance.send(
+                f"You didn't provide your feedback in {TIMEOUT} seconds, skip and use auto-reply.",
+                user=name,
+                respond=False,
+            )
+            reply = ""
+            break
+        if get_input_widget.value != "" and get_input_checkbox.value is True:
+            get_input_widget.disabled = True
+            reply = get_input_widget.value
+            break
+        await asyncio.sleep(0.1)
+    return reply
+
+
+async def check_termination_and_human_reply(
+    self,
+    messages=None,
+    sender=None,
+    config=None,
+    instance=None,
+):
+    """Check if the conversation should be terminated, and if human reply is provided."""
+    if config is None:
+        config = self
+    if messages is None:
+        messages = self._oai_messages[sender]
+    message = messages[-1]
+    reply = ""
+    no_human_input_msg = ""
+    if self.human_input_mode == "ALWAYS":
+        reply = await get_human_input(
+            self.name,
+            f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: ",
+            instance,
+        )
+        no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+        # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+        reply = reply if reply or not self._is_termination_msg(message) else "exit"
+    else:
+        if self._consecutive_auto_reply_counter[sender] >= self._max_consecutive_auto_reply_dict[sender]:
+            if self.human_input_mode == "NEVER":
+                reply = "exit"
+            else:
+                # self.human_input_mode == "TERMINATE":
+                terminate = self._is_termination_msg(message)
+                reply = await get_human_input(
+                    self.name,
+                    f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                    if terminate
+                    else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: ",
+                    instance,
+                )
+                no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                reply = reply if reply or not terminate else "exit"
+        elif self._is_termination_msg(message):
+            if self.human_input_mode == "NEVER":
+                reply = "exit"
+            else:
+                # self.human_input_mode == "TERMINATE":
+                reply = await get_human_input(
+                    self.name,
+                    f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: ",
+                    instance,
+                )
+                no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                reply = reply or "exit"
+
+    # print the no_human_input_msg
+    if no_human_input_msg:
+        print(colored(f"\n>>>>>>>> {no_human_input_msg}", "red"), flush=True)
+
+    # stop the conversation
+    if reply == "exit":
+        # reset the consecutive_auto_reply_counter
+        self._consecutive_auto_reply_counter[sender] = 0
+        return True, None
+
+    # send the human reply
+    if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
+        # reset the consecutive_auto_reply_counter
+        self._consecutive_auto_reply_counter[sender] = 0
+        return True, reply
+
+    # increment the consecutive_auto_reply_counter
+    self._consecutive_auto_reply_counter[sender] += 1
+    if self.human_input_mode != "NEVER":
+        print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
+
+    return False, None
