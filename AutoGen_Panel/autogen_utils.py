@@ -29,7 +29,9 @@ def get_retrieve_config(docs_path, model_name, collection_name):
 
 # autogen.ChatCompletion.start_logging()
 def termination_msg(x):
-    return isinstance(x, dict) and "TERMINATE" == str(x.get("content", ""))[-9:].upper()
+    """Check if a message is a termination message."""
+    _msg = str(x.get("content", "")).upper().strip().strip("\n").strip(".")
+    return isinstance(x, dict) and (_msg.endswith("TERMINATE") or _msg.startswith("TERMINATE"))
 
 
 def _is_termination_msg(message):
@@ -50,6 +52,35 @@ def _is_termination_msg(message):
     return not contain_code
 
 
+def new_generate_oai_reply(
+    cls,
+    messages=None,
+    sender=None,
+    config=None,
+):
+    """Generate a reply using autogen.oai."""
+    client = cls.client if config is None else config
+    if client is None:
+        return False, None
+    if messages is None:
+        messages = cls._oai_messages[sender]
+
+    # handle 336006 https://cloud.baidu.com/doc/WENXINWORKSHOP/s/tlmyncueh
+    _context = messages[-1].pop("context", None)
+    _messages = cls._oai_system_message + messages
+    for idx, msg in enumerate(_messages):
+        if idx == 0:
+            continue
+        if idx % 2 == 1:
+            msg["role"] = "user" if msg.get("role") != "function" else "function"
+        else:
+            msg["role"] = "assistant"
+    print(f"messages: {_messages}")
+    response = client.create(context=_context, messages=_messages)
+    print(f"{response=}")
+    return True, client.extract_text_or_function_call(response)[0]
+
+
 def initialize_agents(
     llm_config, agent_name, system_msg, agent_type, retrieve_config=None, code_execution_config=False
 ):
@@ -61,7 +92,7 @@ def initialize_agents(
             max_consecutive_auto_reply=5,
             retrieve_config=retrieve_config,
             code_execution_config=code_execution_config,  # set to False if you don't want to execute the code
-            default_auto_reply="Reply `TERMINATE` if the task is done.",
+            default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
         )
     elif "GPTAssistantAgent" == agent_type:
         agent = GPTAssistantAgent(
@@ -90,7 +121,7 @@ def initialize_agents(
             is_termination_msg=termination_msg,
             human_input_mode="NEVER",
             system_message=system_msg,
-            default_auto_reply="Reply `TERMINATE` if the task is done.",
+            default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
             max_consecutive_auto_reply=5,
             code_execution_config=code_execution_config,
         )
@@ -103,5 +134,5 @@ def initialize_agents(
             llm_config=llm_config,
         )
 
+    # agent.generate_oai_reply = new_generate_oai_reply.__get__(agent)
     return agent
-
