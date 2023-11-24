@@ -1,5 +1,7 @@
+import asyncio
 import sys
 import threading
+import time
 from ast import literal_eval
 
 import autogen
@@ -13,6 +15,7 @@ from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistant
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 from autogen.code_utils import extract_code
+from configs import Q1, Q2, Q3, TIMEOUT, TITLE
 
 
 def get_retrieve_config(docs_path, model_name, collection_name):
@@ -90,7 +93,7 @@ def initialize_agents(
         agent = RetrieveUserProxyAgent(
             name=agent_name,
             is_termination_msg=termination_msg,
-            human_input_mode="NEVER",
+            human_input_mode="TERMINATE",
             max_consecutive_auto_reply=5,
             retrieve_config=retrieve_config,
             code_execution_config=code_execution_config,  # set to False if you don't want to execute the code
@@ -121,7 +124,7 @@ def initialize_agents(
         agent = globals()[agent_type](
             name=agent_name,
             is_termination_msg=termination_msg,
-            human_input_mode="NEVER",
+            human_input_mode="TERMINATE",
             system_message=system_msg,
             default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
             max_consecutive_auto_reply=5,
