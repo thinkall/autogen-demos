@@ -1,11 +1,13 @@
 import asyncio
 import sys
+import textwrap
 import threading
 import time
 from ast import literal_eval
 
 import autogen
 import chromadb
+import isort
 import panel as pn
 from autogen import Agent, AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
@@ -17,7 +19,6 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProx
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 from autogen.code_utils import extract_code
 from configs import Q1, Q2, Q3, TIMEOUT, TITLE
-from panel.widgets import TextAreaInput
 
 try:
     from termcolor import colored
@@ -160,7 +161,7 @@ async def get_human_input(name, prompt: str, instance=None) -> str:
     """Get human input."""
     if instance is None:
         return input(prompt)
-    get_input_widget = TextAreaInput(placeholder=prompt, name="", sizing_mode="stretch_width")
+    get_input_widget = pn.widgets.TextAreaInput(placeholder=prompt, name="", sizing_mode="stretch_width")
     get_input_checkbox = pn.widgets.Checkbox(name="Check to Submit Feedback")
     instance.send(pn.Row(get_input_widget, get_input_checkbox), user=name, respond=False)
     ts = time.time()
@@ -258,3 +259,158 @@ async def check_termination_and_human_reply(
         print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
 
     return False, None
+
+
+async def generate_code(agents, manager, contents, code_editor):
+    code = """import autogen
+import os
+from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
+from autogen.agentchat.contrib.math_user_proxy_agent import MathUserProxyAgent
+
+config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+    file_location=".",
+)
+if not config_list:
+    os.environ["MODEL"] = "<your model name>"
+    os.environ["OPENAI_API_KEY"] = "<your openai api key>"
+    os.environ["OPENAI_BASE_URL"] = "<your openai base url>" # optional
+
+    config_list = autogen.config_list_from_models(
+        model_list=[os.environ.get("MODEL", "gpt-35-turbo")],
+    )
+
+llm_config = {
+    "timeout": 60,
+    "cache_seed": 42,
+    "config_list": config_list,
+    "temperature": 0,
+}
+
+def termination_msg(x):
+    _msg = str(x.get("content", "")).upper().strip().strip("\\n").strip(".")
+    return isinstance(x, dict) and (_msg.endswith("TERMINATE") or _msg.startswith("TERMINATE"))
+
+agents = []
+
+"""
+
+    for agent in agents:
+        if isinstance(agent, RetrieveUserProxyAgent):
+            _code = f"""from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
+
+agent = RetrieveUserProxyAgent(
+    name="{agent.name}",
+    is_termination_msg=termination_msg,
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=5,
+    retrieve_config={agent._retrieve_config},
+    code_execution_config={agent._code_execution_config},  # set to False if you don't want to execute the code
+    default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+)
+
+"""
+        elif isinstance(agent, GPTAssistantAgent):
+            _code = f"""from auotgen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+
+agent = GPTAssistantAgent(
+    name="{agent.name}",
+    instructions="{agent.system_message}",
+    llm_config=llm_config,
+    is_termination_msg=termination_msg,
+)
+
+"""
+        elif isinstance(agent, CompressibleAgent):
+            _code = f"""from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
+
+compress_config = {{
+    "mode": "COMPRESS",
+    "trigger_count": 600,  # set this to a large number for less frequent compression
+    "verbose": True,  # to allow printing of compression information: contex before and after compression
+    "leave_last_n": 2,
+}}
+
+agent = CompressibleAgent(
+    name="{agent.name}",
+    system_message={agent.system_msg},
+    llm_config=llm_config,
+    compress_config=compress_config,
+    is_termination_msg=termination_msg,
+)
+
+"""
+        elif isinstance(agent, UserProxyAgent):
+            _code = f"""from autogen import UserProxyAgent
+
+agent = UserProxyAgent(
+    name="{agent.name}",
+    is_termination_msg=termination_msg,
+    human_input_mode="TERMINATE",
+    default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+    max_consecutive_auto_reply=5,
+    code_execution_config={agent._code_execution_config},
+)
+
+"""
+        elif isinstance(agent, RetrieveAssistantAgent):
+            _code = f"""from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+
+agent = RetrieveAssistantAgent(
+    name="{agent.name}",
+    system_message="{agent.system_message}",
+    llm_config=llm_config,
+    is_termination_msg=termination_msg,
+    retrieve_config={agent._retrieve_config},
+)
+
+"""
+        elif isinstance(agent, AssistantAgent):
+            _code = f"""from autogen import AssistantAgent
+
+agent = AssistantAgent(
+    name="{agent.name}",
+    system_message="{agent.system_message}",
+    llm_config=llm_config,
+    is_termination_msg=termination_msg,
+)
+
+"""
+        code += _code + "\n" + "agents.append(agent)\n\n"
+
+    _code = """
+for agent in agents:
+    if "UserProxy" in str(type(agent)):
+        init_sender = agent
+        break
+
+if not init_sender:
+    init_sender = agents[0]
+
+"""
+    code += _code
+
+    if manager:
+        _code = """
+groupchat = autogen.GroupChat(
+    agents=agents, messages=[], max_round=12, speaker_selection_method="round_robin", allow_repeat_speaker=False
+)  # todo: auto, sometimes message has no name
+manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+recipient = manager
+"""
+    else:
+        _code = """
+recipient = agents[1] if agents[1] != init_sender else agents[0]
+"""
+    code += _code
+
+    _code = f"""
+if isinstance(init_sender, (RetrieveUserProxyAgent, MathUserProxyAgent)):
+    init_sender.initiate_chat(recipient, problem="{contents}")
+else:
+    init_sender.initiate_chat(recipient, message="{contents}")
+"""
+    code += _code
+    code = textwrap.dedent(code)
+    code_editor.value = isort.code(code)

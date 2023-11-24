@@ -10,15 +10,16 @@ from autogen_utils import (
     MathUserProxyAgent,
     RetrieveUserProxyAgent,
     check_termination_and_human_reply,
+    generate_code,
     get_retrieve_config,
     initialize_agents,
 )
 from configs import Q1, Q2, Q3, TIMEOUT, TITLE
 from custom_widgets import RowAgentWidget
 from panel.chat import ChatInterface
-from panel.widgets import Button, PasswordInput, Switch, TextAreaInput, TextInput
+from panel.widgets import Button, CodeEditor, PasswordInput, Switch, TextInput
 
-pn.extension(design="material")
+pn.extension("codeeditor")
 
 template = pn.template.BootstrapTemplate(title=TITLE)
 
@@ -233,6 +234,7 @@ async def reply_chat(contents, user, instance):
 
     if not init_sender:
         init_sender = agents[0]
+    await generate_code(agents, manager, contents, code_editor)
     await agents_chat(init_sender, manager, contents, agents)
     return "The task is done. Please start a new task."
 
@@ -442,5 +444,8 @@ btn_example1.on_click(load_example)
 btn_example2.on_click(load_example)
 btn_example3.on_click(load_example)
 btn_example4.on_click(load_example)
+
+code_editor = CodeEditor(value="", sizing_mode="stretch_width", language="python", height=300)
+template.main.append(code_editor)
 
 template.servable(title=TITLE)
