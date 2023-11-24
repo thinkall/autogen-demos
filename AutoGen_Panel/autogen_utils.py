@@ -4,7 +4,7 @@ from ast import literal_eval
 
 import autogen
 import chromadb
-from autogen import AssistantAgent, UserProxyAgent
+from autogen import Agent, AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.agentchat.contrib.llava_agent import LLaVAAgent
@@ -53,21 +53,21 @@ def _is_termination_msg(message):
 
 
 def new_generate_oai_reply(
-    cls,
+    self,
     messages=None,
     sender=None,
     config=None,
 ):
     """Generate a reply using autogen.oai."""
-    client = cls.client if config is None else config
+    client = self.client if config is None else config
     if client is None:
         return False, None
     if messages is None:
-        messages = cls._oai_messages[sender]
+        messages = self._oai_messages[sender]
 
     # handle 336006 https://cloud.baidu.com/doc/WENXINWORKSHOP/s/tlmyncueh
     _context = messages[-1].pop("context", None)
-    _messages = cls._oai_system_message + messages
+    _messages = self._oai_system_message + messages
     for idx, msg in enumerate(_messages):
         if idx == 0:
             continue
@@ -75,9 +75,11 @@ def new_generate_oai_reply(
             msg["role"] = "user" if msg.get("role") != "function" else "function"
         else:
             msg["role"] = "assistant"
-    print(f"messages: {_messages}")
+    if len(_messages) % 2 == 1:
+        _messages.append({"content": "Please reply exactly `TERMINATE` to me if the task is done.", "role": "user"})
+    # print(f"messages: {_messages}")
     response = client.create(context=_context, messages=_messages)
-    print(f"{response=}")
+    # print(f"{response=}")
     return True, client.extract_text_or_function_call(response)[0]
 
 
@@ -133,6 +135,9 @@ def initialize_agents(
             system_message=system_msg,
             llm_config=llm_config,
         )
-
-    # agent.generate_oai_reply = new_generate_oai_reply.__get__(agent)
+    if any(["ernie" in cfg["model"].lower() for cfg in llm_config["config_list"]]):
+        # Hack for ERNIE Bot models
+        # print("Hack for ERNIE Bot models.")
+        agent._reply_func_list.pop(-1)
+        agent.register_reply([Agent, None], new_generate_oai_reply, -1)
     return agent
