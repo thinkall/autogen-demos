@@ -135,7 +135,8 @@ def initialize_agents(
             system_message=system_msg,
             llm_config=llm_config,
         )
-    if any(["ernie" in cfg["model"].lower() for cfg in llm_config["config_list"]]):
+    # if any(["ernie" in cfg["model"].lower() for cfg in llm_config["config_list"]]):
+    if "ernie" in llm_config["config_list"][0]["model"].lower():
         # Hack for ERNIE Bot models
         # print("Hack for ERNIE Bot models.")
         agent._reply_func_list.pop(-1)
