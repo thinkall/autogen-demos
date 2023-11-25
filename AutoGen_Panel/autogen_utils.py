@@ -18,7 +18,15 @@ from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistant
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 from autogen.code_utils import extract_code
-from configs import Q1, Q2, Q3, TIMEOUT, TITLE
+from configs import (
+    DEFAULT_AUTO_REPLY,
+    DEFAULT_SYSTEM_MESSAGE,
+    Q1,
+    Q2,
+    Q3,
+    TIMEOUT,
+    TITLE,
+)
 
 try:
     from termcolor import colored
@@ -89,7 +97,7 @@ def new_generate_oai_reply(
         else:
             msg["role"] = "assistant"
     if len(_messages) % 2 == 1:
-        _messages.append({"content": "Please reply exactly `TERMINATE` to me if the task is done.", "role": "user"})
+        _messages.append({"content": DEFAULT_AUTO_REPLY, "role": "user"})
     # print(f"messages: {_messages}")
     response = client.create(context=_context, messages=_messages)
     # print(f"{response=}")
@@ -99,20 +107,24 @@ def new_generate_oai_reply(
 def initialize_agents(
     llm_config, agent_name, system_msg, agent_type, retrieve_config=None, code_execution_config=False
 ):
+    agent_name = agent_name.strip()
+    system_msg = system_msg.strip()
+
     if "RetrieveUserProxyAgent" == agent_type:
         agent = RetrieveUserProxyAgent(
             name=agent_name,
-            is_termination_msg=termination_msg,
+            system_message=system_msg,
+            is_termination_msg=_is_termination_msg,
             human_input_mode="TERMINATE",
             max_consecutive_auto_reply=5,
             retrieve_config=retrieve_config,
             code_execution_config=code_execution_config,  # set to False if you don't want to execute the code
-            default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+            default_auto_reply=DEFAULT_AUTO_REPLY,
         )
     elif "GPTAssistantAgent" == agent_type:
         agent = GPTAssistantAgent(
             name=agent_name,
-            instructions=system_msg,
+            instructions=system_msg if system_msg else DEFAULT_SYSTEM_MESSAGE,
             llm_config=llm_config,
             is_termination_msg=termination_msg,
         )
@@ -125,7 +137,7 @@ def initialize_agents(
         }
         agent = CompressibleAgent(
             name=agent_name,
-            system_message=system_msg,
+            system_message=system_msg if system_msg else DEFAULT_SYSTEM_MESSAGE,
             llm_config=llm_config,
             compress_config=compress_config,
             is_termination_msg=termination_msg,
@@ -136,7 +148,7 @@ def initialize_agents(
             is_termination_msg=termination_msg,
             human_input_mode="TERMINATE",
             system_message=system_msg,
-            default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+            default_auto_reply=DEFAULT_AUTO_REPLY,
             max_consecutive_auto_reply=5,
             code_execution_config=code_execution_config,
         )
@@ -145,7 +157,7 @@ def initialize_agents(
             name=agent_name,
             is_termination_msg=termination_msg,
             human_input_mode="NEVER",
-            system_message=system_msg,
+            system_message=system_msg if system_msg else DEFAULT_SYSTEM_MESSAGE,
             llm_config=llm_config,
         )
     # if any(["ernie" in cfg["model"].lower() for cfg in llm_config["config_list"]]):
@@ -291,6 +303,20 @@ def termination_msg(x):
     _msg = str(x.get("content", "")).upper().strip().strip("\\n").strip(".")
     return isinstance(x, dict) and (_msg.endswith("TERMINATE") or _msg.startswith("TERMINATE"))
 
+def _is_termination_msg(message):
+    if isinstance(message, dict):
+        message = message.get("content")
+        if message is None:
+            return False
+    cb = extract_code(message)
+    contain_code = False
+    for c in cb:
+        # todo: support more languages
+        if c[0] == "python":
+            contain_code = True
+            break
+    return not contain_code
+
 agents = []
 
 """
@@ -301,12 +327,13 @@ agents = []
 
 agent = RetrieveUserProxyAgent(
     name="{agent.name}",
-    is_termination_msg=termination_msg,
+    system_message=\"\"\"{agent.system_message}\"\"\",
+    is_termination_msg=_is_termination_msg,
     human_input_mode="TERMINATE",
     max_consecutive_auto_reply=5,
     retrieve_config={agent._retrieve_config},
     code_execution_config={agent._code_execution_config},  # set to False if you don't want to execute the code
-    default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+    default_auto_reply="{DEFAULT_AUTO_REPLY}",
 )
 
 """
@@ -315,7 +342,7 @@ agent = RetrieveUserProxyAgent(
 
 agent = GPTAssistantAgent(
     name="{agent.name}",
-    instructions="{agent.system_message}",
+    instructions=\"\"\"{agent.system_message}\"\"\",
     llm_config=llm_config,
     is_termination_msg=termination_msg,
 )
@@ -333,7 +360,7 @@ compress_config = {{
 
 agent = CompressibleAgent(
     name="{agent.name}",
-    system_message={agent.system_msg},
+    system_message=\"\"\"{agent.system_message}\"\"\",
     llm_config=llm_config,
     compress_config=compress_config,
     is_termination_msg=termination_msg,
@@ -347,7 +374,7 @@ agent = UserProxyAgent(
     name="{agent.name}",
     is_termination_msg=termination_msg,
     human_input_mode="TERMINATE",
-    default_auto_reply="Please reply exactly `TERMINATE` to me if the task is done.",
+    default_auto_reply="{DEFAULT_AUTO_REPLY}",
     max_consecutive_auto_reply=5,
     code_execution_config={agent._code_execution_config},
 )
@@ -358,7 +385,7 @@ agent = UserProxyAgent(
 
 agent = RetrieveAssistantAgent(
     name="{agent.name}",
-    system_message="{agent.system_message}",
+    system_message=\"\"\"{agent.system_message}\"\"\",
     llm_config=llm_config,
     is_termination_msg=termination_msg,
     retrieve_config={agent._retrieve_config},
@@ -370,7 +397,7 @@ agent = RetrieveAssistantAgent(
 
 agent = AssistantAgent(
     name="{agent.name}",
-    system_message="{agent.system_message}",
+    system_message=\"\"\"{agent.system_message}\"\"\",
     llm_config=llm_config,
     is_termination_msg=termination_msg,
 )

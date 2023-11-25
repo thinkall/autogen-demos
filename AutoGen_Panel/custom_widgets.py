@@ -35,7 +35,7 @@ class RowAgentWidget(Viewer):
         self._system_msg = TextInput(
             name="",
             value=params.get("value")[1],
-            placeholder="System Message",
+            placeholder="System Message, leave empty to use default",
             min_width=400,
             sizing_mode="scale_width",
         )

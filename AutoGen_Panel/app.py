@@ -14,7 +14,15 @@ from autogen_utils import (
     get_retrieve_config,
     initialize_agents,
 )
-from configs import Q1, Q2, Q3, TIMEOUT, TITLE
+from configs import (
+    DEFAULT_AUTO_REPLY,
+    DEFAULT_SYSTEM_MESSAGE,
+    Q1,
+    Q2,
+    Q3,
+    TIMEOUT,
+    TITLE,
+)
 from custom_widgets import RowAgentWidget
 from panel.chat import ChatInterface
 from panel.widgets import Button, CodeEditor, PasswordInput, Switch, TextInput
@@ -321,7 +329,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Senior_Python_Engineer",
-                    "You are a senior python engineer. Reply `TERMINATE` if everything is done.",
+                    f"You are a senior python engineer. {DEFAULT_AUTO_REPLY}",
                     "RetrieveAssistantAgent",
                     "",
                 ]
@@ -332,7 +340,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "User_Proxy",
-                    "User Proxy Agent",
+                    "",
                     "UserProxyAgent",
                     "",
                 ]
@@ -342,7 +350,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Assistant_Agent",
-                    "You are a helpful AI assistant. Reply `TERMINATE` if everything is done.",
+                    "",
                     "AssistantAgent",
                     "",
                 ]
@@ -353,7 +361,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Boss",
-                    "The boss who ask questions and give tasks. Reply `TERMINATE` if everything is done.",
+                    f"The boss who ask questions and give tasks. {DEFAULT_AUTO_REPLY}",
                     "UserProxyAgent",
                     "",
                 ]
@@ -363,7 +371,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Senior_Python_Engineer",
-                    "You are a senior python engineer. Reply `TERMINATE` if everything is done.",
+                    f"You are a senior python engineer. {DEFAULT_AUTO_REPLY}",
                     "AssistantAgent",
                     "",
                 ]
@@ -373,7 +381,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Product_Manager",
-                    "You are a product manager. Reply `TERMINATE` if everything is done.",
+                    f"You are a product manager. {DEFAULT_AUTO_REPLY}",
                     "AssistantAgent",
                     "",
                 ]
