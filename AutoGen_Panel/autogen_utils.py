@@ -389,7 +389,6 @@ agent = RetrieveAssistantAgent(
     system_message=\"\"\"{agent.system_message}\"\"\",
     llm_config=llm_config,
     is_termination_msg=termination_msg,
-    retrieve_config={agent._retrieve_config},
 )
 
 """
