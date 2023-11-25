@@ -42,6 +42,9 @@ txt_model = TextInput(
 pwd_openai_key = PasswordInput(
     name="OpenAI API Key", placeholder="Enter your OpenAI API Key here...", sizing_mode="stretch_width"
 )
+pwd_openai_url = PasswordInput(
+    name="OpenAI Base Url", placeholder="Enter your OpenAI Base Url here...", sizing_mode="stretch_width"
+)
 pwd_aoai_key = PasswordInput(
     name="Azure OpenAI API Key", placeholder="Enter your Azure OpenAI API Key here...", sizing_mode="stretch_width"
 )
@@ -49,7 +52,7 @@ pwd_aoai_url = PasswordInput(
     name="Azure OpenAI Base Url", placeholder="Enter your Azure OpenAI Base Url here...", sizing_mode="stretch_width"
 )
 file_cfg = pn.widgets.FileInput(filename="OAI_CONFIG_LIST", sizing_mode="stretch_width")
-template.main.append(pn.Row(txt_model, pwd_openai_key, pwd_aoai_key, pwd_aoai_url, file_cfg))
+template.main.append(pn.Row(txt_model, pwd_openai_key, pwd_openai_url, pwd_aoai_key, pwd_aoai_url, file_cfg))
 
 
 def get_config(tmpfilename="OAI_CONFIG_LIST"):
@@ -68,12 +71,18 @@ def get_config(tmpfilename="OAI_CONFIG_LIST"):
     if not config_list:
         os.environ["MODEL"] = txt_model.value
         os.environ["OPENAI_API_KEY"] = pwd_openai_key.value
+        os.environ["OPENAI_API_BASE"] = pwd_openai_url.value
         os.environ["AZURE_OPENAI_API_KEY"] = pwd_aoai_key.value
         os.environ["AZURE_OPENAI_API_BASE"] = pwd_aoai_url.value
 
         config_list = autogen.config_list_from_models(
             model_list=[os.environ.get("MODEL", "gpt-35-turbo")],
         )
+        for cfg in config_list:
+            if cfg.get("api_type", "open_ai") == "open_ai":
+                base_url = os.environ.get("OPENAI_API_BASE", "").strip()
+                if base_url:
+                    cfg["base_url"] = base_url
     if not config_list:
         config_list = [
             {
