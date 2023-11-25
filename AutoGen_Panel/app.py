@@ -132,7 +132,7 @@ column_agents.append(
     RowAgentWidget(
         value=[
             "Assistant_Agent",
-            "You are a helpful AI assistant. Reply `TERMINATE` if everything is done.",
+            "",
             "AssistantAgent",
             "",
         ]
