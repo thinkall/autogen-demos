@@ -155,7 +155,7 @@ btn_remove.on_click(remove_agent)
 
 
 async def send_messages(recipient, messages, sender, config):
-    print(f"{sender.name} -> {recipient.name}: {messages[-1]['content']}")
+    # print(f"{sender.name} -> {recipient.name}: {messages[-1]['content']}")
     chatiface.send(messages[-1]["content"], user=sender.name, respond=False)
     return False, None  # required to ensure the agent communication flow continues
 
