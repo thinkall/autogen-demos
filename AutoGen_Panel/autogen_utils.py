@@ -324,7 +324,10 @@ agents = []
 
     for agent in agents:
         if isinstance(agent, RetrieveUserProxyAgent):
+            _retrieve_config = agent._retrieve_config
+            _retrieve_config["client"] = 'chromadb.PersistentClient(path=".chromadb")'
             _code = f"""from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
+import chromadb
 
 agent = RetrieveUserProxyAgent(
     name="{agent.name}",
@@ -332,12 +335,15 @@ agent = RetrieveUserProxyAgent(
     is_termination_msg=_is_termination_msg,
     human_input_mode="TERMINATE",
     max_consecutive_auto_reply=5,
-    retrieve_config={agent._retrieve_config},
+    retrieve_config={_retrieve_config},
     code_execution_config={agent._code_execution_config},  # set to False if you don't want to execute the code
     default_auto_reply="{DEFAULT_AUTO_REPLY}",
 )
 
 """
+            _code = _code.replace(
+                """'chromadb.PersistentClient(path=".chromadb")'""", "chromadb.PersistentClient(path='.chromadb')"
+            )
         elif isinstance(agent, GPTAssistantAgent):
             _code = f"""from auotgen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
