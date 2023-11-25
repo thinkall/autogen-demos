@@ -95,7 +95,7 @@ def get_config(tmpfilename="OAI_CONFIG_LIST"):
         ]
 
     llm_config = {
-        "timeout": 60,
+        "timeout": TIMEOUT,
         "cache_seed": 42,
         "config_list": config_list,
         "temperature": 0,
