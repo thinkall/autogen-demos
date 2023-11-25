@@ -1,4 +1,6 @@
 import asyncio
+import os
+import random
 import sys
 import textwrap
 import threading
@@ -273,6 +275,20 @@ async def check_termination_and_human_reply(
     return False, None
 
 
+async def format_code(code_to_format: str) -> str:
+    """Format the code using isort and black."""
+    filename = f"temp_code_{int(time.time())}_{random.randint(10000, 99999)}.py"
+    with open(filename, "w") as file:
+        file.write(code_to_format)
+    isort.file(filename, profile="black", known_first_party=["autogen"], float_to_top=True)
+
+    formatted_code = ""
+    with open(filename, "r") as file:
+        formatted_code = file.read()
+    os.remove(filename)
+    return formatted_code
+
+
 async def generate_code(agents, manager, contents, code_editor):
     code = """import autogen
 import os
@@ -426,7 +442,7 @@ if not init_sender:
     if manager:
         _code = """
 groupchat = autogen.GroupChat(
-    agents=agents, messages=[], max_round=12, speaker_selection_method="round_robin", allow_repeat_speaker=False
+    agents=agents, messages=[], max_round=12, speaker_selection_method="auto", allow_repeat_speaker=False
 )  # todo: auto, sometimes message has no name
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
@@ -446,4 +462,4 @@ else:
 """
     code += _code
     code = textwrap.dedent(code)
-    code_editor.value = isort.code(code)
+    code_editor.value = await format_code(code)

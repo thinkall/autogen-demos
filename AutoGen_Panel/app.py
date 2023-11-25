@@ -191,7 +191,7 @@ def init_groupchat(event, collection_name):
         agents.append(agent)
     if len(agents) >= 3:
         groupchat = autogen.GroupChat(
-            agents=agents, messages=[], max_round=12, speaker_selection_method="round_robin", allow_repeat_speaker=False
+            agents=agents, messages=[], max_round=12, speaker_selection_method="auto", allow_repeat_speaker=False
         )  # todo: auto, sometimes message has no name
         manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
     else:
