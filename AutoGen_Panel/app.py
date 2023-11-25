@@ -154,9 +154,44 @@ btn_add.on_click(add_agent)
 btn_remove.on_click(remove_agent)
 
 
-def send_messages(recipient, messages, sender, config):
+async def send_messages(recipient, messages, sender, config):
+    print(f"{sender.name} -> {recipient.name}: {messages[-1]['content']}")
     chatiface.send(messages[-1]["content"], user=sender.name, respond=False)
     return False, None  # required to ensure the agent communication flow continues
+
+
+class myGroupChatManager(autogen.GroupChatManager):
+    def _send_messages(self, message, sender, config):
+        message = self._message_to_dict(message)
+
+        if message.get("role") == "function":
+            content = message["content"]
+        else:
+            content = message.get("content")
+            if content is not None:
+                if "context" in message:
+                    content = autogen.OpenAIWrapper.instantiate(
+                        content,
+                        message["context"],
+                        self.llm_config and self.llm_config.get("allow_format_str_template", False),
+                    )
+            if "function_call" in message:
+                function_call = dict(message["function_call"])
+                content = f"Suggested function Call: {function_call.get('name', '(No function name found)')}"
+        chatiface.send(content, user=sender.name, respond=False)
+        return False, None  # required to ensure the agent communication flow continues
+
+    def _process_received_message(self, message, sender, silent):
+        message = self._message_to_dict(message)
+        # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
+        valid = self._append_oai_message(message, "user", sender)
+        if not valid:
+            raise ValueError(
+                "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
+            )
+        if not silent:
+            self._print_received_message(message, sender)
+            self._send_messages(message, sender, None)
 
 
 def init_groupchat(event, collection_name):
@@ -192,8 +227,8 @@ def init_groupchat(event, collection_name):
     if len(agents) >= 3:
         groupchat = autogen.GroupChat(
             agents=agents, messages=[], max_round=12, speaker_selection_method="auto", allow_repeat_speaker=False
-        )  # todo: auto, sometimes message has no name
-        manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+        )
+        manager = myGroupChatManager(groupchat=groupchat, llm_config=llm_config)
     else:
         manager = None
     return agents, manager
@@ -240,6 +275,9 @@ async def reply_chat(contents, user, instance):
             partial(check_termination_and_human_reply, instance=instance),
             1,
         )
+    if manager is not None:
+        for agent in agents:
+            agent._reply_func_list.pop(0)
 
     if not init_sender:
         init_sender = agents[0]
