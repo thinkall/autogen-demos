@@ -7,4 +7,5 @@ Q2 = "Write a python function to compute the sum of numbers."
 Q3 = "find papers on LLM applications from arxiv in the last week, create a markdown table of different domains."
 
 DEFAULT_SYSTEM_MESSAGE = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-DEFAULT_AUTO_REPLY = """Reply "TERMINATE" in the end when everything is done."""
+DEFAULT_TERMINATE_MESSAGE = "Reply `TERMINATE` in the end if the task is done."
+DEFAULT_AUTO_REPLY = "I've no more questions. Reply `TERMINATE` to exit."

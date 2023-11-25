@@ -14,15 +14,7 @@ from autogen_utils import (
     get_retrieve_config,
     initialize_agents,
 )
-from configs import (
-    DEFAULT_AUTO_REPLY,
-    DEFAULT_SYSTEM_MESSAGE,
-    Q1,
-    Q2,
-    Q3,
-    TIMEOUT,
-    TITLE,
-)
+from configs import DEFAULT_TERMINATE_MESSAGE, Q1, Q2, Q3, TIMEOUT, TITLE
 from custom_widgets import RowAgentWidget
 from panel.chat import ChatInterface
 from panel.widgets import Button, CodeEditor, PasswordInput, Switch, TextInput
@@ -329,7 +321,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Senior_Python_Engineer",
-                    f"You are a senior python engineer. {DEFAULT_AUTO_REPLY}",
+                    f"You are a senior python engineer. {DEFAULT_TERMINATE_MESSAGE}",
                     "RetrieveAssistantAgent",
                     "",
                 ]
@@ -361,7 +353,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Boss",
-                    f"The boss who ask questions and give tasks. {DEFAULT_AUTO_REPLY}",
+                    f"The boss who ask questions and give tasks. {DEFAULT_TERMINATE_MESSAGE}",
                     "UserProxyAgent",
                     "",
                 ]
@@ -371,7 +363,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Senior_Python_Engineer",
-                    f"You are a senior python engineer. {DEFAULT_AUTO_REPLY}",
+                    f"You are a senior python engineer. {DEFAULT_TERMINATE_MESSAGE}",
                     "AssistantAgent",
                     "",
                 ]
@@ -381,7 +373,7 @@ def load_example(event):
             RowAgentWidget(
                 value=[
                     "Product_Manager",
-                    f"You are a product manager. {DEFAULT_AUTO_REPLY}",
+                    f"You are a product manager. {DEFAULT_TERMINATE_MESSAGE}",
                     "AssistantAgent",
                     "",
                 ]

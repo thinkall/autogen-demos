@@ -278,6 +278,7 @@ async def generate_code(agents, manager, contents, code_editor):
 import os
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.agentchat.contrib.math_user_proxy_agent import MathUserProxyAgent
+from autogen.code_utils import extract_code
 
 config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
