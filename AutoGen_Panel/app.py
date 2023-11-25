@@ -121,7 +121,7 @@ column_agents = pn.Column(
     RowAgentWidget(
         value=[
             "User_Proxy",
-            "User Proxy Agent",
+            "",
             "UserProxyAgent",
             "",
         ]
