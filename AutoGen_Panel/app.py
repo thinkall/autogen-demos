@@ -332,6 +332,7 @@ btn_example1 = Button(name="General 2 agents", button_type="primary", sizing_mod
 btn_example2 = Button(name="RAG 2 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example3 = Button(name="Software Dev 3 agents", button_type="primary", sizing_mode="stretch_width")
 btn_example4 = Button(name="Research 6 agents", button_type="primary", sizing_mode="stretch_width")
+btn_example5 = Button(name="Debate 9 agents", button_type="primary", sizing_mode="stretch_width")
 template.main.append(
     pn.Row(
         pn.pane.Markdown("## Agent Examples: ", sizing_mode="stretch_width"),
@@ -339,6 +340,7 @@ template.main.append(
         btn_example2,
         btn_example3,
         btn_example4,
+        btn_example5,
         sizing_mode="stretch_width",
     )
 )
@@ -492,12 +494,104 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
                 ]
             ),
         )
+    elif event.obj.name == "Debate 9 agents":
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "Host",
+                    "辩论主持人。主持辩论，提出问题，总结辩论结果",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_one_member_one",
+                    "你是辩论队的正方一辩，你要根据给定的题目说出正方观点。你可以在辩论过程中提出问题，但是你不能回答问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_two_member_one",
+                    "你是辩论队的反方一辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方一辩提出的问题，并且可以给对方提出新的问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_one_member_two",
+                    "你是辩论队的正方二辩，你要根据给定的题目说出正方观点。你可以在辩论过程中回答反方一辩提出的问题，并且可以给对方提出新的问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_two_member_two",
+                    "你是辩论队的反方二辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方二辩提出的问题，并且可以给对方提出新的问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_one_member_three",
+                    "你是辩论队的正方三辩，你要根据给定的题目说出正方观点。你可以在辩论过程中回答反方二辩提出的问题，并且可以给对方提出新的问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_two_member_there",
+                    "你是辩论队的反方三辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方三辩提出的问题，并且可以给对方提出新的问题",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_one_member_four",
+                    "你是辩论队的正方四辩，你要总结前面的辩论内容，言简意赅的再次反驳反方观点，并总结说明正方观点。",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
+        column_agents.append(
+            RowAgentWidget(
+                value=[
+                    "team_two_member_four",
+                    "你是辩论队的反方四辩，你要总结前面的辩论内容，言简意赅的再次反驳正方观点，并总结说明反方观点。",
+                    "AssistantAgent",
+                    "",
+                ]
+            ),
+        )
 
 
 btn_example1.on_click(load_example)
 btn_example2.on_click(load_example)
 btn_example3.on_click(load_example)
 btn_example4.on_click(load_example)
+btn_example5.on_click(load_example)
 
 code_editor = CodeEditor(value="", sizing_mode="stretch_width", language="python", height=300)
 template.main.append(code_editor)
