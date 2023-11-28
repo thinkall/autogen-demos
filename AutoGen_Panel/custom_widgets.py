@@ -28,7 +28,7 @@ class RowAgentWidget(Viewer):
         self._agent_name = TextInput(
             name="",
             value=params.get("value")[0],
-            placeholder="Agent Name",
+            placeholder="Agent Name (can only contain letters, numbers, and underscores))",
             min_width=100,
             sizing_mode="scale_width",
         )
