@@ -238,6 +238,7 @@ def init_groupchat(event, collection_name):
         manager = myGroupChatManager(groupchat=groupchat, llm_config=llm_config)
     else:
         manager = None
+        groupchat = None
     return agents, manager, groupchat
 
 
