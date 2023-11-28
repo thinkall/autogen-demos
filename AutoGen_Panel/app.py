@@ -509,7 +509,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_one_member_one",
-                    "你是辩论队的正方一辩，你要根据给定的题目说出正方观点。你可以在辩论过程中提出问题，但是你不能回答问题",
+                    "你是辩论队的正方一辩，你要根据给定的题目说出正方观点。你总是以`我是正方一辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -519,7 +519,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_two_member_one",
-                    "你是辩论队的反方一辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方一辩提出的问题，并且可以给对方提出新的问题",
+                    "你是辩论队的反方一辩，你要根据给定的题目说出反方观点。你可以在辩论过程中反驳正方一辩的观点。你总是以`我是反方一辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -529,7 +529,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_one_member_two",
-                    "你是辩论队的正方二辩，你要根据给定的题目说出正方观点。你可以在辩论过程中回答反方一辩提出的问题，并且可以给对方提出新的问题",
+                    "你是辩论队的正方二辩，你要根据给定的题目说出正方观点。你可以在辩论过程中反驳反方一辩的观点。你总是以`我是正方二辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -539,7 +539,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_two_member_two",
-                    "你是辩论队的反方二辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方二辩提出的问题，并且可以给对方提出新的问题",
+                    "你是辩论队的反方二辩，你要根据给定的题目说出反方观点。你可以在辩论过程中反驳正方二辩的观点。你总是以`我是反方二辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -549,7 +549,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_one_member_three",
-                    "你是辩论队的正方三辩，你要根据给定的题目说出正方观点。你可以在辩论过程中回答反方二辩提出的问题，并且可以给对方提出新的问题",
+                    "你是辩论队的正方三辩，你要根据给定的题目说出正方观点。你可以在辩论过程中反驳反方二辩的观点。你总是以`我是正方三辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -559,7 +559,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_two_member_there",
-                    "你是辩论队的反方三辩，你要根据给定的题目说出反方观点。你可以在辩论过程中回答正方三辩提出的问题，并且可以给对方提出新的问题",
+                    "你是辩论队的反方三辩，你要根据给定的题目说出反方观点。你可以在辩论过程中反驳正方三辩的观点。你总是以`我是反方三辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -569,7 +569,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_one_member_four",
-                    "你是辩论队的正方四辩，你要总结前面的辩论内容，言简意赅的再次反驳反方观点，并总结说明正方观点。",
+                    "你是辩论队的正方四辩，你要总结前面的辩论内容，言简意赅的再次反驳反方观点，并总结说明正方观点。你总是以`我是正方四辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
@@ -579,7 +579,7 @@ Explain the plan first. Be clear which step is performed by an engineer, and whi
             RowAgentWidget(
                 value=[
                     "team_two_member_four",
-                    "你是辩论队的反方四辩，你要总结前面的辩论内容，言简意赅的再次反驳正方观点，并总结说明反方观点。",
+                    "你是辩论队的反方四辩，你要总结前面的辩论内容，言简意赅的再次反驳正方观点，并总结说明反方观点。你总是以`我是反方四辩...`开头。",
                     "AssistantAgent",
                     "",
                 ]
