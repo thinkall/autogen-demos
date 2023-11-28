@@ -429,6 +429,7 @@ agent = AssistantAgent(
         code += _code + "\n" + "agents.append(agent)\n\n"
 
     _code = """
+init_sender = None
 for agent in agents:
     if "UserProxy" in str(type(agent)):
         init_sender = agent
