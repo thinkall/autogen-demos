@@ -107,6 +107,7 @@ def get_config(tmpfilename="OAI_CONFIG_LIST"):
 btn_add = Button(name="+", button_type="success")
 btn_remove = Button(name="-", button_type="danger")
 switch_code = Switch(name="Run Code", sizing_mode="fixed", width=50, height=30, align="end")
+select_speaker_method = pn.widgets.Select(name="", options=["round_robin", "auto", "random"], value="round_robin")
 template.main.append(
     pn.Row(
         pn.pane.Markdown("## Add or Remove Agents: "),
@@ -114,6 +115,8 @@ template.main.append(
         btn_remove,
         pn.pane.Markdown("### Run Code: "),
         switch_code,
+        pn.pane.Markdown("### Speaker Selection Method: "),
+        select_speaker_method,
     )
 )
 
@@ -226,12 +229,16 @@ def init_groupchat(event, collection_name):
         agents.append(agent)
     if len(agents) >= 3:
         groupchat = autogen.GroupChat(
-            agents=agents, messages=[], max_round=12, speaker_selection_method="auto", allow_repeat_speaker=False
+            agents=agents,
+            messages=[],
+            max_round=12,
+            speaker_selection_method=select_speaker_method.value,
+            allow_repeat_speaker=False,
         )
         manager = myGroupChatManager(groupchat=groupchat, llm_config=llm_config)
     else:
         manager = None
-    return agents, manager
+    return agents, manager, groupchat
 
 
 async def agents_chat(init_sender, manager, contents, agents):
@@ -249,9 +256,9 @@ async def reply_chat(contents, user, instance):
         collection_name = f"{int(time.time())}_{random.randint(0, 100000)}"
         instance.collection_name = collection_name
 
-    column_agents_list = [agent[0][0].value for agent in column_agents]
+    column_agents_list = [[a.value for a in agent[0]] for agent in column_agents]
     if not hasattr(instance, "agent_list") or instance.agents_list != column_agents_list:
-        agents, manager = init_groupchat(None, collection_name)
+        agents, manager, groupchat = init_groupchat(None, collection_name)
         instance.manager = manager
         instance.agents = agents
         instance.agents_list = column_agents_list
@@ -281,7 +288,7 @@ async def reply_chat(contents, user, instance):
 
     if not init_sender:
         init_sender = agents[0]
-    await generate_code(agents, manager, contents, code_editor)
+    await generate_code(agents, manager, contents, code_editor, groupchat)
     await agents_chat(init_sender, manager, contents, agents)
     return "The task is done. Please start a new task."
 
