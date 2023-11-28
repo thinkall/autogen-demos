@@ -182,11 +182,11 @@ async def get_human_input(name, prompt: str, instance=None) -> str:
     while True:
         if time.time() - ts > TIMEOUT:
             instance.send(
-                f"You didn't provide your feedback in {TIMEOUT} seconds, skip and use auto-reply.",
+                f"You didn't provide your feedback in {TIMEOUT} seconds, exit.",
                 user=name,
                 respond=False,
             )
-            reply = ""
+            reply = "exit"
             break
         if get_input_widget.value != "" and get_input_checkbox.value is True:
             get_input_widget.disabled = True
@@ -289,7 +289,7 @@ async def format_code(code_to_format: str) -> str:
     return formatted_code
 
 
-async def generate_code(agents, manager, contents, code_editor):
+async def generate_code(agents, manager, contents, code_editor, groupchat):
     code = """import autogen
 import os
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
@@ -397,6 +397,7 @@ agent = UserProxyAgent(
     name="{agent.name}",
     is_termination_msg=termination_msg,
     human_input_mode="TERMINATE",
+    system_message=\"\"\"{agent.system_message}\"\"\",
     default_auto_reply="{DEFAULT_AUTO_REPLY}",
     max_consecutive_auto_reply=5,
     code_execution_config={agent._code_execution_config},
@@ -440,9 +441,9 @@ if not init_sender:
     code += _code
 
     if manager:
-        _code = """
+        _code = f"""
 groupchat = autogen.GroupChat(
-    agents=agents, messages=[], max_round=12, speaker_selection_method="auto", allow_repeat_speaker=False
+    agents=agents, messages=[], max_round=12, speaker_selection_method="{groupchat.speaker_selection_method}", allow_repeat_speaker=False
 )  # todo: auto, sometimes message has no name
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
