@@ -150,7 +150,8 @@ def add_agent(event):
 
 
 def remove_agent(event):
-    column_agents.pop(-1)
+    if len(column_agents) > 0:
+        column_agents.pop(-1)
 
 
 btn_add.on_click(add_agent)
