@@ -45,6 +45,7 @@ docker run --name one-api -d --restart always -p 3000:3000 -e TZ=Asia/Shanghai -
 ![](wenxin/oneapitoken2.png)
 
 6. Create a file named `OAI_CONFIG_LIST` with below content
+
 Put the file in the same folder with `app.py` then it will be loaded by default.
 
 Or you can upload it in the app's UI later.
