@@ -257,7 +257,7 @@ async def reply_chat(contents, user, instance):
         collection_name = f"{int(time.time())}_{random.randint(0, 100000)}"
         instance.collection_name = collection_name
 
-    column_agents_list = [[a.value for a in agent[0]] for agent in column_agents]
+    column_agents_list = [[a.value for a in agent[0]] for agent in column_agents] + [switch_code.value]
     if not hasattr(instance, "agent_list") or instance.agents_list != column_agents_list:
         agents, manager, groupchat = init_groupchat(None, collection_name)
         instance.manager = manager
