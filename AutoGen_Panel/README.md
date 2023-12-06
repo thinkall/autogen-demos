@@ -1,6 +1,6 @@
-# Microsoft AutoGen: Play Ground
+# Microsoft AutoGen: GroupChat PlayGround
 
-This demo is an AutoGen playground implemented with [Panel](https://panel.holoviz.org/index.html).
+This demo is an AutoGen groupchat playground built with [Panel](https://panel.holoviz.org/). You can use it to interact with the AutoGen agents. Scroll down to see the code for creating and using the agents.
 
 ## Run app
 ```

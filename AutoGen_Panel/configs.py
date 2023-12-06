@@ -9,3 +9,4 @@ Q3 = "find papers on LLM applications from arxiv in the last week, create a mark
 DEFAULT_SYSTEM_MESSAGE = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
 DEFAULT_TERMINATE_MESSAGE = "Reply `TERMINATE` in the end if the task is done."
 DEFAULT_AUTO_REPLY = "Good, thank you. Reply `TERMINATE` to finish."
+DEFAULT_AUTO_REPLY = "很好，请继续"
