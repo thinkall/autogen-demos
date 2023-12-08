@@ -1,10 +1,8 @@
-**Issue Template**
-
 ### Description
 <!-- A clear and concise description of the issue or feature request. -->
 
 ### Environment
-- AutoGen version: <!-- Specify the AutoGen version (e.g., v1.6.0) -->
+- AutoGen version: <!-- Specify the AutoGen version (e.g., v0.2.0) -->
 - Python version: <!-- Specify the Python version (e.g., 3.8) -->
 - Operating System: <!-- Specify the OS (e.g., Windows 10, Ubuntu 20.04) -->
 
