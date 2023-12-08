@@ -1,0 +1,48 @@
+name: Bug Report
+about: Report a bug to help us improve
+labels: bug
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: What went wrong?
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Steps to reproduce the behavior:
+
+        1. Step 1
+        2. Step 2
+        3. ...
+        4. See error
+      placeholder: How can we replicate the issue?
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened?
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: Add screenshots here
+
+  - type: textarea
+    id: additional_information
+    attributes:
+      label: Additional Information
+      description: |
+        - Operating System: [e.g., Windows 10]
+        - Browser: [e.g., Chrome version 99.0.9999]
+        - Any other relevant information.
+      placeholder: Any additional details
