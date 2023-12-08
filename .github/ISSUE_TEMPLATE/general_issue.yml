@@ -1,14 +1,14 @@
-name: Bug Report
-description: File a bug report
-title: "[Bug]: "
-labels: ["bug"]
+name: General Issue
+description: File a general issue
+title: "[Issue]: "
+labels: []
 
 body:
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is.
+      label: Describe the issue
+      description: A clear and concise description of what the issue is.
       placeholder: What went wrong?
   - type: textarea
     id: reproduce
@@ -22,12 +22,6 @@ body:
         3. ...
         4. See error
       placeholder: How can we replicate the issue?
-  - type: textarea
-    id: expected_behavior
-    attributes:
-      label: Expected Behavior
-      description: A clear and concise description of what you expected to happen.
-      placeholder: What should have happened?
   - type: textarea
     id: screenshots
     attributes:
