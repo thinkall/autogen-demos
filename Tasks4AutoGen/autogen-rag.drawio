@@ -1,9 +1,30 @@
-<mxfile host="app.diagrams.net" modified="2024-02-06T09:39:37.618Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" etag="jmkxJl3xHtvvZflled0p" version="23.1.1" type="github">
+<mxfile host="app.diagrams.net" modified="2024-02-06T11:55:11.144Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" etag="eVhps0vrZL2WJGV8cn6W" version="23.1.1" type="github">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="Page-1">
-    <mxGraphModel dx="1434" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#F7F7F7" math="0" shadow="0">
+    <mxGraphModel dx="1434" dy="770" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#F7F7F7" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-12" value="Chunks" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="430" y="498" width="110" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-24" value="Splitter" style="rounded=1;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="260" y="507.5" width="100" height="41" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-26" value="&lt;font color=&quot;#ff6666&quot; style=&quot;font-size: 20px;&quot;&gt;Documents&lt;/font&gt;" style="sketch=0;outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=20;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.documents;fillColor=#f8cecc;strokeColor=#b85450;gradientColor=#ea6b66;" vertex="1" parent="1">
+          <mxGeometry x="110" y="480" width="64" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-28" value="Encoder" style="rounded=1;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="615" y="498" width="100" height="41" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-29" value="&lt;font color=&quot;#33ff33&quot; style=&quot;font-size: 20px;&quot;&gt;Embeddings&lt;/font&gt;" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=#005700;fillColor=#008a00;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam2.datastore_empty;fontColor=#ffffff;aspect=fixed;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="820" y="493.5" width="40" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-30" value="&lt;font color=&quot;#66b2ff&quot;&gt;Vector Database&lt;/font&gt;" style="image;html=1;image=img/lib/clip_art/computers/Database_128x128.png" vertex="1" parent="1">
+          <mxGeometry x="625" y="340" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-39" value="User Input" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="54" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
