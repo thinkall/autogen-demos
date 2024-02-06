@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-02-06T12:24:54.047Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" etag="cl7QVc4n0S2gmuXwgxkc" version="23.1.1" type="github">
+<mxfile host="app.diagrams.net" modified="2024-02-06T12:27:06.303Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" etag="MMRSQ31iR4nsp5Ymfp5V" version="23.1.1" type="github">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="Page-1">
     <mxGraphModel dx="1434" dy="770" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#F7F7F7" math="0" shadow="0">
       <root>
@@ -94,7 +94,7 @@
         <mxCell id="F0DF5Nve_Ln5ljsZZCzn-75" value="+Filename&lt;br&gt;+Content&lt;br&gt;+Title&lt;br&gt;+Metadata&lt;br&gt;+Content_Embedding&lt;br&gt;+Title_Embedding" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;html=1;" vertex="1" parent="F0DF5Nve_Ln5ljsZZCzn-74">
           <mxGeometry y="50" width="130" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-81" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Encoder&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ num_token: int&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ cost: float&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ embed(): Type&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="F0DF5Nve_Ln5ljsZZCzn-81" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Encoder&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ register_embedding_func()&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ embedding_func1()&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ embedding_func2()&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="595" y="602" width="160" height="90" as="geometry" />
         </mxCell>
       </root>
