@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-02-29T15:36:29.477Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="Xor2DPeLM2RL5dEs0Zsk" version="23.1.8" type="github">
+<mxfile host="app.diagrams.net" modified="2024-03-14T12:46:40.470Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="omxNCrXMgGg1yP2pPNYe" version="24.0.6" type="github">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="Page-1">
-    <mxGraphModel dx="1434" dy="770" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#000000" math="0" shadow="0">
+    <mxGraphModel dx="1114" dy="757" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#000000" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -308,6 +308,32 @@
         </mxCell>
         <mxCell id="_tUif2nr6kAjVogQxes8-3" value="RagAgent" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;fontColor=#66B2FF;spacing=2;fontSize=32;" parent="1" vertex="1">
           <mxGeometry x="201" y="62" width="180" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="OyWg6Vmbgrv9X4vpb0mr-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="338.97" y="957" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-1" value="UserProxyAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;fontColor=#ffffff;strokeColor=#006EAF;" vertex="1" parent="1">
+          <mxGeometry x="118.97" y="927" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-2" value="RetrieverAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;fontColor=#ffffff;strokeColor=#006EAF;" vertex="1" parent="1">
+          <mxGeometry x="364" y="927" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-3" value="AssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;fontColor=#ffffff;strokeColor=#006EAF;" vertex="1" parent="1">
+          <mxGeometry x="611" y="927" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-7" value="query message" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#006EAF;strokeWidth=2;fillColor=#1ba1e2;fontColor=#FFFFFF;labelBackgroundColor=#080808;" edge="1" parent="1" source="OyWg6Vmbgrv9X4vpb0mr-1" target="OyWg6Vmbgrv9X4vpb0mr-2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="543" y="1215" as="sourcePoint" />
+            <mxPoint x="593" y="1165" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OyWg6Vmbgrv9X4vpb0mr-9" value="query message" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#006EAF;strokeWidth=2;fillColor=#1ba1e2;fontColor=#FFFFFF;labelBackgroundColor=#080808;" edge="1" parent="1" source="OyWg6Vmbgrv9X4vpb0mr-2" target="OyWg6Vmbgrv9X4vpb0mr-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="259" y="1005" as="sourcePoint" />
+            <mxPoint x="384" y="1005" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
