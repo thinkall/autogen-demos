@@ -1,6 +1,6 @@
 """
 AutoGen Code:
-    # pip install pyautogen
+    # pip install ag2
 
     from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
